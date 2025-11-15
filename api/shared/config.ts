@@ -92,8 +92,9 @@ const actionApiLimiter = createConcurrencyLimiter(1);
 // Rate limiting interceptor for REST API
 restAxiosInstance.interceptors.request.use(
   async (config) => {
-    // Use REST API limiter by default
     await restApiLimiter.acquire();
+    // Add minimum delay between REST API requests (100ms = 10 req/sec)
+    await delay(100);
     return config;
   }
 );

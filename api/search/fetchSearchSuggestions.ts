@@ -30,12 +30,9 @@ export const fetchSearchSuggestions = async (
 
     const searchResponse = await actionAxiosInstance.get<CombinedSearchResponse>('', { params });
     const searchData = searchResponse.data;
+const results = searchData.query?.search || [];
 
-    console.log('Search data received:', searchData);
-
-    const results = searchData.query?.search || [];
-    const pages = searchData.query?.pages || {};
-    console.log('Search results count:', results.length);
+const pages = searchData.query?.pages || {};
 
     if (results.length === 0) return [];
 

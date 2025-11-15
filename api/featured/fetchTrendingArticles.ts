@@ -34,8 +34,12 @@ export const fetchTrendingArticles = async (): Promise<TrendingArticle[]> => {
 
     const url = `/metrics/pageviews/top/en.wikipedia/all-access/${year}/${month}/${day}`;
 
+    // Use the rate-limited REST API instance
     const response = await restAxiosInstance.get<PageViewResponse>(url, {
-      baseURL: 'https://wikimedia.org/api/rest_v1'
+      baseURL: 'https://wikimedia.org/api/rest_v1',
+      headers: {
+        'Accept': 'application/json'
+      }
     });
 
     if (!response.data?.items?.[0]?.articles) {
@@ -44,14 +48,8 @@ export const fetchTrendingArticles = async (): Promise<TrendingArticle[]> => {
 
     const articles = response.data.items[0].articles;
     
-    // OPTIMIZATION: Use a simpler trending algorithm that doesn't require multiple API calls
-    // Instead of fetching detailed monthly data for each article, we'll use a simpler approach
-    // that only requires the top articles data we already have
-    
-    // Calculate trending based on current rank and views
+
     const trendingArticles = articles.map((article, index) => {
-      // Use rank-based trending score (higher rank = more trending)
-      // Also factor in the view count for additional weighting
       const rankScore = 100 - index; // Higher rank gets higher score
       const viewScore = Math.log(article.views + 1); // Log scale to normalize view counts
       const trendingRatio = rankScore * viewScore;
@@ -60,7 +58,6 @@ export const fetchTrendingArticles = async (): Promise<TrendingArticle[]> => {
         ...article,
         trendingRatio,
         todayViews: article.views,
-        lastMonthAvg: 0 // Not calculated in this optimized version
       };
     });
     

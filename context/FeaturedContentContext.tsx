@@ -11,18 +11,16 @@ interface FeaturedContentProviderProps {
 export function FeaturedContentProvider({ children }: FeaturedContentProviderProps) {
   const featuredContentQuery = useFeaturedContentHook();
 
-  // Preload trending categories immediately when provider mounts
+  // Preload featured content immediately when provider mounts
   useEffect(() => {
-    // This ensures the featured content starts loading as soon as the app starts
-    // rather than waiting for the first component to request it
+    // Load featured content immediately on app start
     if (!featuredContentQuery.data && !featuredContentQuery.isLoading) {
       featuredContentQuery.refetch();
     }
-  }, [featuredContentQuery.data, featuredContentQuery.isLoading, featuredContentQuery.refetch]);
+  }, [featuredContentQuery, featuredContentQuery.data, featuredContentQuery.isLoading, featuredContentQuery.refetch]);
 
   const contextValue: FeaturedContentContextType = {
-    featuredContent: featuredContentQuery.data?.data && 'tfa' in featuredContentQuery.data.data ? featuredContentQuery.data.data : null,
-    trendingCategories: (featuredContentQuery.trendingCategories as string[]) || [],
+    featuredContent: featuredContentQuery.data?.data && featuredContentQuery.data.data.tfa ? featuredContentQuery.data.data : null,
     isLoading: featuredContentQuery.isLoading,
     error: featuredContentQuery.error?.message || null,
     refreshFeaturedContent: async () => {

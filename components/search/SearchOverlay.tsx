@@ -52,11 +52,12 @@ export default function SearchOverlay({ visible, onClose, initialQuery = '' }: S
   }
 
   return (
-    <View 
+    <View
       style={{ flex: 1, backgroundColor: theme.colors.background }}
       accessible={true}
       accessibilityLabel="Search overlay"
       accessibilityRole="search"
+      importantForAccessibility="yes"
     >
       <SearchHeader
         query={query}

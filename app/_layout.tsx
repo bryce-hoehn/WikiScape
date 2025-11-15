@@ -4,7 +4,6 @@ import React from 'react';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import { BookmarksProvider } from '../context/BookmarksContext';
 import { FeaturedContentProvider } from '../context/FeaturedContentContext';
-import { PreferencesProvider } from '../context/PreferencesContext';
 import { ThemeProvider } from '../context/ThemeProvider';
 
 const queryClient = new QueryClient({
@@ -19,21 +18,19 @@ const queryClient = new QueryClient({
 export default function Layout() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
           <BookmarksProvider>
             <FeaturedContentProvider>
-              <PreferencesProvider>
-                <Stack>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(zArticleStack)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(zCategoryStack)" options={{ headerShown: false }} />
-                </Stack>
-              </PreferencesProvider>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="(zArticleStack)" options={{ headerShown: false }} />
+                <Stack.Screen name="(zCategoryStack)" options={{ headerShown: false }} />
+              </Stack>
             </FeaturedContentProvider>
           </BookmarksProvider>
-        </QueryClientProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

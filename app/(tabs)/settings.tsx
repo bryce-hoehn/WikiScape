@@ -1,4 +1,4 @@
-import { PreferencesContext } from '@/context/PreferencesContext';
+import { useThemeContext } from '@/context/ThemeProvider';
 import { useVisitedArticles } from '@/hooks';
 import React, { useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
@@ -6,7 +6,7 @@ import { Appbar, Button, Card, Divider, Menu, Text, useTheme } from 'react-nativ
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const { currentTheme, setTheme } = React.useContext(PreferencesContext);
+  const { currentTheme, setTheme } = useThemeContext();
   const { clearVisitedArticles, visitedArticles } = useVisitedArticles();
   const [isResetting, setIsResetting] = useState(false);
   const [themeMenuVisible, setThemeMenuVisible] = useState(false);

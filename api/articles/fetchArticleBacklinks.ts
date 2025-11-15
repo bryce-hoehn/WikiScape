@@ -31,6 +31,7 @@ export const fetchArticleBacklinks = async (articleTitle: string): Promise<strin
         lhlimit: 50, // Get up to 50 backlinks
         lhnamespace: 0, // Only main namespace articles
         format: 'json',
+        origin: '*'
       },
     });
 

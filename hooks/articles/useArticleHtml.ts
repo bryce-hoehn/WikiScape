@@ -18,7 +18,8 @@ export default function useArticleHtml(title: string) {
       return rawHtml;
     },
     enabled: !!title,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
+    staleTime: 10 * 60 * 1000, // 10 minutes - HTML content doesn't change often
+    gcTime: 30 * 60 * 1000, // 30 minutes garbage collection
+    retry: 1, // Only retry once for HTML content
   });
 }

@@ -11,6 +11,19 @@ export default function ForYouFeed() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  const renderEmptyState = useCallback(() => {
+    if (recommendations.length === 0 && !loading) {
+      return (
+        <EmptyState
+          icon="account-heart"
+          title="No Recommendations Yet"
+          description="Read some articles to get personalized recommendations."
+        />
+      );
+    }
+    return null;
+  }, [recommendations.length, loading]);
+
 
   const loadRecommendations = useCallback(async (isRefresh = false) => {
     // Don't load if no visited articles or still loading
@@ -25,7 +38,8 @@ export default function ForYouFeed() {
     }
     
     try {
-      const recs = await getRecommendations(20);
+      // Request fewer recommendations initially for faster loading
+      const recs = await getRecommendations(10);
       setRecommendations(recs);
     } catch (error) {
       console.error('Failed to load recommendations:', error);
@@ -43,7 +57,8 @@ export default function ForYouFeed() {
     if (!loading && visitedArticles.length > 0) {
       setLoading(true);
       try {
-        const newRecs = await getRecommendations(20);
+        // Load fewer additional recommendations for faster response
+        const newRecs = await getRecommendations(5);
         setRecommendations((prev: any[]) => {
           const combined = [...prev, ...newRecs];
           // Remove duplicates
@@ -80,6 +95,7 @@ export default function ForYouFeed() {
     return <EmptyState />;
   }
 
+  // Always render Feed component to ensure FAB is available
   return (
     <Feed
       data={recommendations}
@@ -87,7 +103,7 @@ export default function ForYouFeed() {
       refreshing={refreshing}
       onRefresh={handleRefresh}
       loadMore={loadMore}
-      renderEmptyState={() => null} // We handle empty states above
+      renderEmptyState={renderEmptyState}
       keyExtractor={(item: any) => `${item.title}-${item.thumbnail || 'no-thumb'}`}
     />
   );

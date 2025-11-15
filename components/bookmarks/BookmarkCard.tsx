@@ -19,7 +19,6 @@ export default function BookmarkCard({ item, onRemoveBookmark }: BookmarkCardPro
         elevation: 4,
       }}
       onPress={() => router.push(`/(zArticleStack)/${encodeURIComponent(item.title)}`)}
-      accessibilityRole="button"
       accessibilityLabel={`Open article: ${item.title}`}
       accessibilityHint={`Opens the ${item.title} article`}
     >

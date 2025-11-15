@@ -166,6 +166,7 @@ export default function SubCategories() {
                   horizontal={subcategoriesHorizontal}
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ paddingRight: 16 }}
+                  key={`subcategories-${subcategoriesHorizontal}`}
                 />
               </View>
             )}

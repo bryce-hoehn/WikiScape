@@ -14,15 +14,21 @@ export const fetchArticleHtml = async (title: string): Promise<string | null> =>
       .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
     
     
-    const response = await restAxiosInstance.get<string>(`/page/${encodeURIComponent(cleanTitle)}/html`, {
-      baseURL: WIKIPEDIA_API_CONFIG.CORE_API_BASE_URL,
-      headers: {
-        'Accept': 'text/html'
-      },
-      timeout: 10000, // 10 second timeout
-    });
-    
-    return response.data;
+    // Try Core API first (preferred for better HTML formatting)
+    try {
+      const response = await restAxiosInstance.get<string>(`/page/${encodeURIComponent(cleanTitle)}/html`, {
+        baseURL: WIKIPEDIA_API_CONFIG.CORE_API_BASE_URL,
+        headers: {
+          'Accept': 'text/html'
+        },
+        timeout: 10000, // 10 second timeout
+      });
+      
+      return response.data;
+    } catch (coreError: any) {
+      console.warn(`Core API failed for "${title}", trying REST API mobile-html fallback:`, coreError.response?.status);
+      return null
+    }
   } catch (error: any) {
     console.error('Failed to fetch article HTML:', title, error.response?.status, error.response?.data);
     

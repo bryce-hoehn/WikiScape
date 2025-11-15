@@ -100,7 +100,6 @@ export interface OnThisDayItem {
 
 export interface FeaturedContentContextType {
   featuredContent: FeaturedContent | null;
-  trendingCategories: string[];
   isLoading: boolean;
   error: string | null;
   refreshFeaturedContent: () => Promise<void>;
@@ -125,6 +124,6 @@ export interface FeaturedContent {
  * Response from fetchFeaturedContent API
  */
 export interface FeaturedContentResponse {
-  data: FeaturedContent;
+  data: FeaturedContent | null;
   error?: string;
 }

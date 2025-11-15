@@ -29,6 +29,7 @@ export const fetchArticleLinks = async (articleTitle: string): Promise<string[]>
         titles: articleTitle,
         pllimit: 50, // Get up to 50 forward links
         format: 'json',
+        origin: '*'
       },
     });
 

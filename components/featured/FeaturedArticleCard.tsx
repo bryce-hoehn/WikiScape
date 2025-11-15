@@ -17,7 +17,6 @@ export default function FeaturedArticleCard() {
     <Card
       style={{ width: '100%' }}
       onPress={() => router.push(`/(zArticleStack)/${encodeURIComponent(article.titles?.normalized || article.title || '')}`)}
-      accessibilityRole="button"
       accessibilityLabel={`Open featured article: ${article.titles?.normalized || article.title || ''}`}
       accessibilityHint={`Opens the featured article: ${article.titles?.normalized || article.title || ''}`}
     >

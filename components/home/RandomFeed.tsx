@@ -1,19 +1,11 @@
-import { FlashList } from '@shopify/flash-list';
 import React, { useCallback, useEffect, useState } from 'react';
-import { RefreshControl } from 'react-native';
-import { useTheme } from 'react-native-paper';
 import { fetchRandomArticle } from '../../api';
-import { useBookmarkToggle } from '../../hooks';
 import { ArticleResponse } from '../../types/api/articles';
 import { RecommendationItem } from '../../types/components';
-import RecommendationCard from '../article/RecommendationCard';
 import EmptyState from './EmptyState';
-import LoadingFooter from './LoadingFooter';
+import Feed from './Feed';
 
-export default function RandomFeed() {
-  const theme = useTheme();
-  const { handleBookmarkToggle, isBookmarked } = useBookmarkToggle();
-  
+export default function RandomFeed() {  
   const [randomArticles, setRandomArticles] = useState<RecommendationItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -96,19 +88,6 @@ export default function RandomFeed() {
     }
   }, []);
 
-  const renderItem = useCallback(({ item, index }: { item: RecommendationItem; index: number }) => (
-    <RecommendationCard
-      item={item}
-      index={index}
-      isBookmarked={isBookmarked}
-      onBookmarkToggle={handleBookmarkToggle}
-    />
-  ), [isBookmarked, handleBookmarkToggle]);
-
-  const renderFooter = useCallback(() => (
-    <LoadingFooter loading={loading && randomArticles.length > 0} />
-  ), [loading, randomArticles.length]);
-
   const renderEmptyState = useCallback(() => (
     <EmptyState
       icon="dice-5"
@@ -118,28 +97,18 @@ export default function RandomFeed() {
     />
   ), []);
 
+  const keyExtractor = useCallback((item: RecommendationItem) =>
+    `${item.title}-${item.thumbnail?.source || 'no-thumb'}`, []);
+
   return (
-    <FlashList
+    <Feed
       data={randomArticles}
-      renderItem={renderItem}
-      keyExtractor={(item, index) => `${item.title}-${index}`}
-      contentContainerStyle={{
-        flexGrow: 1,
-        ...(randomArticles.length === 0 && { justifyContent: 'center' })
-      }}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-          colors={[theme.colors.primary]}
-          tintColor={theme.colors.primary}
-        />
-      }
-      onEndReached={loadMoreArticles}
-      onEndReachedThreshold={0.2}
-      ListFooterComponent={renderFooter}
-      ListEmptyComponent={renderEmptyState}
+      loading={loading}
+      refreshing={refreshing}
+      onRefresh={handleRefresh}
+      loadMore={loadMoreArticles}
+      renderEmptyState={renderEmptyState}
+      keyExtractor={keyExtractor}
     />
   );
 }

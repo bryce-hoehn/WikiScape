@@ -1,9 +1,9 @@
 import { selectAll } from "css-select";
 import { removeElement } from "domutils";
+import { Image } from "expo-image";
 import React from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { Image } from "expo-image";
 
 // Custom caption renderer for table captions
 export const CaptionRenderer = ({ tnode }: { tnode: any }) => {
@@ -20,6 +20,7 @@ export const CaptionRenderer = ({ tnode }: { tnode: any }) => {
 
   return (
     <Text
+      selectable
       style={{
         textAlign: 'center',
         padding: 8,
@@ -81,14 +82,13 @@ export const ImageRenderer = ({
       // Remove /thumb/ part to get original image
       imageUrl = imageUrl.replace('/thumb/', '/');
       const parts = imageUrl.split('/');
-      // Remove the last part which is usually the thumbnail filename
+      // Remove thumbnail filename
       imageUrl = parts.slice(0, -1).join('/');
     }
 
     // Special handling for Wikimedia map tiles and dynamic images
     if (imageUrl.includes('osm-intl') || imageUrl.includes('maps.wikimedia.org')) {
       // These are dynamic map tiles - they should work as-is with the full URL
-      // console.log('Map tile detected:', imageUrl);
     }
 
     return imageUrl;

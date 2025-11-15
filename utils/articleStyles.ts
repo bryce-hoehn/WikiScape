@@ -11,67 +11,53 @@ import { MD3Theme } from 'react-native-paper';
 export function getArticleTagStyles(theme: MD3Theme): Record<string, TextStyle> {
   return {
     body: {
-      fontSize: 16,
-      lineHeight: 24,
+      // Remove fixed font sizes to allow baseStyle scaling
       color: theme.colors.onSurface,
       letterSpacing: 0.15,
     },
     h1: {
-      fontSize: 26,
       fontWeight: '700' as TextStyle['fontWeight'],
       marginTop: 24,
       marginBottom: 16,
       color: theme.colors.onSurface,
-      lineHeight: 32,
       letterSpacing: 0.25,
     },
     h2: {
-      fontSize: 22,
       fontWeight: '700' as TextStyle['fontWeight'],
       marginTop: 20,
       marginBottom: 12,
       color: theme.colors.onSurface,
-      lineHeight: 28,
       letterSpacing: 0.2,
     },
     h3: {
-      fontSize: 18,
       fontWeight: '600' as TextStyle['fontWeight'],
       marginTop: 16,
       marginBottom: 8,
       color: theme.colors.onSurface,
-      lineHeight: 24,
       letterSpacing: 0.15,
     },
     h4: {
-      fontSize: 16,
       fontWeight: '600' as TextStyle['fontWeight'],
       marginTop: 14,
       marginBottom: 6,
       color: theme.colors.onSurface,
-      lineHeight: 22,
       letterSpacing: 0.1,
     },
     h5: {
-      fontSize: 14,
       fontWeight: '600' as TextStyle['fontWeight'],
       marginTop: 12,
       marginBottom: 4,
       color: theme.colors.onSurface,
-      lineHeight: 20,
     },
     h6: {
-      fontSize: 13,
       fontWeight: '600' as TextStyle['fontWeight'],
       marginTop: 10,
       marginBottom: 4,
       color: theme.colors.onSurface,
-      lineHeight: 18,
     },
     p: {
       marginTop: 12,
       marginBottom: 12,
-      lineHeight: 24,
       color: theme.colors.onSurface,
       letterSpacing: 0.15,
     },
@@ -110,8 +96,6 @@ export function getArticleTagStyles(theme: MD3Theme): Record<string, TextStyle> 
       textAlign: 'center' as TextStyle['textAlign'],
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.outline,
-      fontSize: 14,
-      lineHeight: 18,
     },
     td: {
       paddingVertical: 10,
@@ -119,8 +103,6 @@ export function getArticleTagStyles(theme: MD3Theme): Record<string, TextStyle> 
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.outlineVariant,
       color: theme.colors.onSurface,
-      fontSize: 14,
-      lineHeight: 18,
     },
     tr: {
       // Ensure proper row behavior
@@ -134,7 +116,6 @@ export function getArticleTagStyles(theme: MD3Theme): Record<string, TextStyle> 
       paddingVertical: 2,
       borderRadius: 4,
       fontFamily: 'monospace',
-      fontSize: 14,
     },
     pre: {
       backgroundColor: theme.colors.surfaceVariant,
@@ -142,8 +123,6 @@ export function getArticleTagStyles(theme: MD3Theme): Record<string, TextStyle> 
       padding: 16,
       borderRadius: 8,
       fontFamily: 'monospace',
-      fontSize: 14,
-      lineHeight: 20,
       overflow: 'scroll',
       marginVertical: 12,
     },
