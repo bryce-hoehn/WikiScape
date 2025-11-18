@@ -17,13 +17,15 @@ export default function useArticleThumbnail(title: string) {
       if (offlineArticle && offlineArticle.thumbnail) {
         return offlineArticle.thumbnail;
       }
-      
+
       // Fall back to network request
       const thumbnail = await fetchArticleThumbnail(title);
       return thumbnail;
     },
     enabled: !!title,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 60 * 60 * 1000, // 1 hour - thumbnails rarely change
+    gcTime: 2 * 60 * 60 * 1000, // 2 hours
     retry: 2,
+    refetchOnWindowFocus: false, // Don't refetch on focus
   });
 }

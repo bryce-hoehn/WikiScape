@@ -1,81 +1,86 @@
 import HtmlRenderer from '@/components/common/HtmlRenderer';
-import useThumbnailLoader from '@/hooks/ui/useThumbnailLoader';
-import { Image } from 'expo-image';
+import { SPACING } from '@/constants/spacing';
 import { router } from 'expo-router';
 import React, { memo, useCallback } from 'react';
-import { View } from 'react-native';
-import { Card, MD3Theme, Text } from 'react-native-paper';
-
+import { Text, useTheme, type MD3Theme } from 'react-native-paper';
 import { RecommendationItem } from '../../types/components';
+import BaseFeaturedCard, { FeaturedCardItem } from './BaseFeaturedCard';
 
 interface OnThisDayCardProps {
   item: RecommendationItem;
-  itemWidth: number;
   theme: MD3Theme;
+  itemWidth?: number;
 }
 
-function OnThisDayCard({ item, theme }: OnThisDayCardProps) {
-  // Use the year from the OnThisDayItem
+function OnThisDayCard({ item, theme, itemWidth }: OnThisDayCardProps) {
   const year = item.year;
-  const thumbnail = useThumbnailLoader(item);
 
-  // Handle card press - navigate to first page if available
-  const handleCardPress = useCallback(() => {
-    if (item?.pages?.[0]?.title) {
-      router.push(`/article/${encodeURIComponent(item.pages[0].title)}`);
-    } else if (item?.articleTitle) {
-      router.push(`/article/${encodeURIComponent(item.articleTitle)}`);
+  const getArticleTitle = (item: FeaturedCardItem) => {
+    if ('title' in item) {
+      if (item.pages?.[0]?.title) return item.pages[0].title;
+      if (item.articleTitle) return item.articleTitle;
     }
-  }, [item]);
+    return null;
+  };
+
+  const getTitle = (item: FeaturedCardItem) => {
+    if ('title' in item) {
+      const title = item.pages?.[0]?.title || item.articleTitle || 'On This Day';
+      return title.replace(/_/g, ' ');
+    }
+    return 'On This Day';
+  };
+
+  const getDescription = (item: FeaturedCardItem) => {
+    if ('title' in item) {
+      return item.html || item.text || 'No content available';
+    }
+    if ('html' in item) {
+      return item.html || 'No content available';
+    }
+    return 'No content available';
+  };
+
+  const handleYearPress = useCallback(() => {
+    if (year) {
+      router.push(`/article/${encodeURIComponent(year)}`);
+    }
+  }, [year, router]);
+
+  const headerContent = year ? (
+    <Text
+      variant="titleLarge"
+      onPress={handleYearPress}
+      style={{
+        fontWeight: 'bold',
+        color: theme.colors.primary,
+      }}
+    >
+      {year}
+    </Text>
+  ) : undefined;
+
+  const renderContent = (item: FeaturedCardItem, description: string) => {
+    return (
+      <HtmlRenderer
+        html={description}
+        maxLines={4}
+        style={{ paddingTop: SPACING.md, flexShrink: 1 }}
+      />
+    );
+  };
 
   return (
-    <View style={{ flex: 1 }}>
-      {year && (
-        <Text
-          variant="titleLarge"
-          onPress={() => router.push(`/article/${encodeURIComponent(year)}`)}
-          style={{
-            fontWeight: 'bold',
-            color: theme.colors.primary,
-            marginBottom: 8,
-          }}
-        >
-          {year}
-        </Text>
-      )}
-      <Card
-        style={{
-          width: '100%',
-          borderRadius: 12,
-          overflow: 'hidden',
-        }}
-        onPress={handleCardPress}
-      >
-        <View style={{ height: 160, width: '100%', backgroundColor: theme.colors.surfaceVariant }}>
-          {thumbnail ? (
-            <Image
-              source={{ uri: thumbnail }}
-              style={{ height: 160, width: '100%' }}
-              contentFit="cover"
-              transition={300}
-            />
-          ) : (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                No Image
-              </Text>
-            </View>
-          )}
-        </View>
-        <Card.Content style={{ padding: 12 }}>
-          <HtmlRenderer
-            html={item.html || item.text || 'No content available'}
-            maxLines={6}
-            style={{ paddingTop: 12 }}
-          />
-        </Card.Content>
-      </Card>
-    </View>
+    <BaseFeaturedCard
+      item={item}
+      itemWidth={itemWidth}
+      theme={theme}
+      getArticleTitle={getArticleTitle}
+      getDescription={getDescription}
+      getTitle={getTitle}
+      headerContent={headerContent}
+      renderContent={renderContent}
+    />
   );
 }
 

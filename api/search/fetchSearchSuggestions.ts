@@ -8,13 +8,25 @@ interface CombinedSearchResponse {
   };
 }
 
-export const fetchSearchSuggestions = async (
-  query: string
-): Promise<SearchSuggestion[]> => {
+/**
+ * Fetch search suggestions from Wikipedia based on a query string
+ *
+ * Returns up to 10 search suggestions with titles, descriptions, and thumbnails.
+ * Returns an empty array if the query is empty or if the request fails.
+ *
+ * @param query - The search query string
+ * @returns Promise resolving to an array of SearchSuggestion objects
+ *
+ * @example
+ * ```ts
+ * const suggestions = await fetchSearchSuggestions("Einstein");
+ * suggestions.forEach(s => console.log(s.title));
+ * ```
+ */
+export const fetchSearchSuggestions = async (query: string): Promise<SearchSuggestion[]> => {
   if (!query.trim()) return [];
 
   try {
-
     // Use Wikipedia Action API for search with page info in single request
     const params = {
       action: 'query',
@@ -25,17 +37,17 @@ export const fetchSearchSuggestions = async (
       piprop: 'thumbnail',
       pithumbsize: 200,
       format: 'json',
-      origin: '*'
+      origin: '*',
     };
 
     const searchResponse = await axiosInstance.get<CombinedSearchResponse>('', {
       baseURL: WIKIPEDIA_API_CONFIG.BASE_URL,
-      params
+      params,
     });
     const searchData = searchResponse.data;
-const results = searchData.query?.search || [];
+    const results = searchData.query?.search || [];
 
-const pages = searchData.query?.pages || {};
+    const pages = searchData.query?.pages || {};
 
     if (results.length === 0) return [];
 
@@ -48,7 +60,9 @@ const pages = searchData.query?.pages || {};
       };
     });
   } catch (error: unknown) {
-    console.error('Failed to fetch search suggestions:', error);
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.error('Failed to fetch search suggestions:', error);
+    }
     return [];
   }
 };

@@ -1,4 +1,4 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '../shared';
+import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 
 interface BacklinkResponse {
   query: {
@@ -32,7 +32,7 @@ export const fetchArticleBacklinks = async (articleTitle: string): Promise<strin
         lhlimit: 50, // Get up to 50 backlinks
         lhnamespace: 0, // Only main namespace articles
         format: 'json',
-        origin: '*'
+        origin: '*',
       },
     });
 
@@ -47,7 +47,7 @@ export const fetchArticleBacklinks = async (articleTitle: string): Promise<strin
 
     // Filter out unwanted pages and return titles
     return backlinks
-      .filter(backlink => {
+      .filter((backlink) => {
         const title = backlink.title;
         return !(
           title === 'Main_Page' ||
@@ -60,10 +60,15 @@ export const fetchArticleBacklinks = async (articleTitle: string): Promise<strin
           title.startsWith('Wikipedia:')
         );
       })
-      .map(backlink => backlink.title);
-
+      .map((backlink) => backlink.title);
   } catch (error: unknown) {
-    console.error(`Failed to fetch backlinks for ${articleTitle}:`, (error as { response?: { status?: number; data?: unknown } }).response?.status, (error as { response?: { data?: unknown } }).response?.data || error);
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.error(
+        `Failed to fetch backlinks for ${articleTitle}:`,
+        (error as { response?: { status?: number; data?: unknown } }).response?.status,
+        (error as { response?: { data?: unknown } }).response?.data || error
+      );
+    }
     return [];
   }
 };

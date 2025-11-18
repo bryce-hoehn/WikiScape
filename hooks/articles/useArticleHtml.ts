@@ -11,15 +11,17 @@ export default function useArticleHtml(title: string) {
     queryFn: async (): Promise<string | null> => {
       if (!title) return null;
       const rawHtml = await fetchArticleHtml(title);
-      
+
       // Return null if rawHtml is null (error case)
       if (!rawHtml) return null;
-      
+
       return rawHtml;
     },
     enabled: !!title,
-    staleTime: 10 * 60 * 1000, // 10 minutes - HTML content doesn't change often
-    gcTime: 30 * 60 * 1000, // 30 minutes garbage collection
-    retry: 1, // Only retry once for HTML content
+    staleTime: 30 * 60 * 1000, // 30 minutes - HTML content rarely changes
+    gcTime: 60 * 60 * 1000, // 1 hour - keep in cache longer
+    retry: 1, // Only retry once for HTML content (large payload)
+    refetchOnWindowFocus: false, // Don't refetch on focus
+    refetchOnReconnect: false, // Don't refetch on reconnect
   });
 }

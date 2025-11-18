@@ -12,6 +12,7 @@ export interface RecommendationItem {
   title: string;
   displaytitle?: string;
   description?: string;
+  extract?: string; // Full article summary/extract
   thumbnail?: ImageThumbnail;
   pageid?: number;
   // Additional properties for compatibility with various data sources
@@ -59,6 +60,7 @@ export interface RecommendationCardProps {
   index: number;
   isBookmarked: (title: string) => boolean;
   onBookmarkToggle: (item: RecommendationItem) => void;
+  onRemove?: (title: string) => void;
 }
 
 /**
@@ -124,6 +126,9 @@ export interface HtmlRendererProps {
 export interface BookmarkCardProps {
   item: Bookmark;
   onRemoveBookmark: (title: string) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: () => void;
 }
 
 /**

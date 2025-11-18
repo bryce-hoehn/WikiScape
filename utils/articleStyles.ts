@@ -1,5 +1,5 @@
-import { TextStyle } from 'react-native';
-import { MD3Theme } from 'react-native-paper';
+import { Platform, TextStyle } from 'react-native';
+import { type MD3Theme } from 'react-native-paper';
 
 /**
  * Generates the style map passed to `RenderHtml` based on the current theme.
@@ -8,40 +8,68 @@ import { MD3Theme } from 'react-native-paper';
  * @param theme The theme object from `react-native-paper`.
  * @returns An object where keys are HTML tag names and values are style objects.
  */
-export function getArticleTagStyles(theme: MD3Theme): Record<string, TextStyle> {
+export function getArticleTagStyles(
+  theme: MD3Theme,
+  baseFontSize: number = 16,
+  lineHeight: number = 1.6,
+  paragraphSpacing: number = 16,
+  fontFamily: string = 'system'
+): Record<string, TextStyle> {
+  const ratio = baseFontSize / 16; // Calculate ratio from base size
+
+  // Map font family values to actual font families
+  const fontFamilyMap: Record<string, string | undefined> = {
+    system: undefined, // Use system default
+    serif: 'Georgia, serif',
+    'sans-serif': 'Arial, sans-serif',
+    monospace: 'Courier New, monospace',
+    Roboto: 'Roboto_400Regular',
+    OpenSans: 'OpenSans_400Regular',
+    Inter: 'Inter_400Regular',
+    Lora: 'Lora_400Regular',
+    Merriweather: 'Merriweather_400Regular',
+    PlayfairDisplay: 'PlayfairDisplay_400Regular',
+  };
+
+  const fontFamilyValue = fontFamilyMap[fontFamily] || undefined;
+
   return {
     body: {
-      // Remove fixed font sizes to allow baseStyle scaling
       color: theme.colors.onSurface,
-      letterSpacing: 0.15,
+      lineHeight: baseFontSize * lineHeight,
+      fontSize: baseFontSize,
+      fontFamily: fontFamilyValue,
+      marginBottom: paragraphSpacing,
     },
     h1: {
       fontWeight: '700' as TextStyle['fontWeight'],
-      marginTop: 24,
-      marginBottom: 16,
+      marginTop: 18,
+      marginBottom: 12 + paragraphSpacing,
       color: theme.colors.onSurface,
-      letterSpacing: 0.25,
+      fontSize: 22 * ratio,
+      lineHeight: 22 * ratio * lineHeight,
+      fontFamily: fontFamilyValue,
     },
     h2: {
       fontWeight: '700' as TextStyle['fontWeight'],
-      marginTop: 20,
-      marginBottom: 12,
+      marginTop: 16,
+      marginBottom: 10 + paragraphSpacing,
       color: theme.colors.onSurface,
-      letterSpacing: 0.2,
+      fontSize: 18 * ratio,
+      lineHeight: 18 * ratio * lineHeight,
+      fontFamily: fontFamilyValue,
     },
     h3: {
       fontWeight: '600' as TextStyle['fontWeight'],
       marginTop: 16,
       marginBottom: 8,
       color: theme.colors.onSurface,
-      letterSpacing: 0.15,
     },
     h4: {
       fontWeight: '600' as TextStyle['fontWeight'],
       marginTop: 14,
       marginBottom: 6,
       color: theme.colors.onSurface,
-      letterSpacing: 0.1,
     },
     h5: {
       fontWeight: '600' as TextStyle['fontWeight'],
@@ -57,92 +85,120 @@ export function getArticleTagStyles(theme: MD3Theme): Record<string, TextStyle> 
     },
     p: {
       marginTop: 12,
-      marginBottom: 12,
+      marginBottom: paragraphSpacing,
       color: theme.colors.onSurface,
-      letterSpacing: 0.15,
+      fontSize: baseFontSize,
+      lineHeight: baseFontSize * lineHeight,
+      fontFamily: fontFamilyValue,
     },
     a: {
       color: theme.colors.primary,
       textDecorationLine: 'none',
     },
     ul: {
-      marginVertical: 12,
-      marginLeft: 16,
+      marginVertical: 12, // MD3: 12dp vertical spacing (1.5x base unit)
+      marginLeft: 16, // MD3: 16dp indentation (2x base unit)
     },
     ol: {
-      marginVertical: 12,
-      marginLeft: 16,
+      marginVertical: 12, // MD3: 12dp vertical spacing (1.5x base unit)
+      marginLeft: 16, // MD3: 16dp indentation (2x base unit)
     },
     li: {
       marginVertical: 4,
       color: theme.colors.onSurface,
-      lineHeight: 22,
+      lineHeight: baseFontSize * lineHeight,
+      fontSize: baseFontSize,
+      fontFamily: fontFamilyValue,
     },
     table: {
-      backgroundColor: theme.colors.surface,
-      borderWidth: 1,
-      borderColor: theme.colors.outline,
-      borderRadius: 12,
-      marginVertical: 16,
-      overflow: 'hidden',
+      backgroundColor: 'transparent',
+      marginVertical: 12, // MD3: 12dp vertical spacing
       width: '100%',
+      maxWidth: '100%',
+      borderRadius: theme.roundness, // MD3: Use theme roundness for shape
+      overflow: 'hidden',
+      alignSelf: 'center',
+    },
+    thead: {
+      backgroundColor: 'transparent', // MD3: Transparent, rely on th styling
+    },
+    tbody: {
+      backgroundColor: 'transparent',
     },
     th: {
-      backgroundColor: theme.colors.surfaceVariant,
-      color: theme.colors.onSurface,
-      fontWeight: '700' as TextStyle['fontWeight'],
-      paddingVertical: 12,
-      paddingHorizontal: 10,
-      textAlign: 'center' as TextStyle['textAlign'],
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.outline,
+      backgroundColor: (theme.colors as any).surfaceContainerHighest || theme.colors.surfaceVariant, // MD3: Subtle elevation for headers
+      color: theme.colors.onSurface, // MD3: On-surface for text
+      fontWeight: '600' as TextStyle['fontWeight'], // MD3: Use 600 for medium emphasis
+      paddingVertical: 8, // MD3: 8dp vertical padding (1x base unit)
+      paddingHorizontal: 12, // MD3: 12dp horizontal padding (1.5x base unit)
+      textAlign: 'left' as TextStyle['textAlign'],
+      fontSize: baseFontSize * 0.95,
+      overflow: 'hidden',
+      maxWidth: '100%',
+      minWidth: 0,
+      borderWidth: 0.5, // MD3: Thinner borders for subtlety
+      borderColor: theme.colors.outlineVariant, // MD3: Use outlineVariant for subtle borders
+      borderStyle: 'solid' as any,
     },
     td: {
-      paddingVertical: 10,
-      paddingHorizontal: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.outlineVariant,
-      color: theme.colors.onSurface,
+      paddingVertical: 8, // MD3: 8dp vertical padding (1x base unit)
+      paddingHorizontal: 12, // MD3: 12dp horizontal padding (1.5x base unit)
+      color: theme.colors.onSurface, // MD3: On-surface for text
+      fontSize: baseFontSize * 0.95,
+      overflow: 'hidden',
+      maxWidth: '100%',
+      minWidth: 0,
+      borderWidth: 0.5, // MD3: Thinner borders for subtlety
+      borderColor: theme.colors.outlineVariant, // MD3: Use outlineVariant for subtle borders
+      borderStyle: 'solid' as any,
+      // Default text alignment for table cells
+      textAlign: 'left' as TextStyle['textAlign'],
     },
     tr: {
-      // Ensure proper row behavior
-      minHeight: 44,
+      backgroundColor: 'transparent',
+    },
+    caption: {
+      fontSize: baseFontSize * 0.85,
+      color: theme.colors.onSurfaceVariant, // MD3: On-surface-variant for secondary text
+      fontStyle: 'italic',
+      paddingVertical: 8, // MD3: 8dp vertical padding (1x base unit)
+      textAlign: 'center' as TextStyle['textAlign'],
     },
     // Improved code styling
     code: {
-      backgroundColor: theme.colors.surfaceVariant,
-      color: theme.colors.onSurfaceVariant,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 4,
+      backgroundColor: theme.colors.surfaceVariant, // MD3: Surface variant for emphasis
+      color: theme.colors.onSurfaceVariant, // MD3: On-surface-variant for text
+      paddingHorizontal: 4, // MD3: 4dp horizontal padding (0.5x base unit)
+      paddingVertical: 2, // MD3: 2dp vertical padding (minimal)
+      borderRadius: theme.roundness * 2, // MD3: 8dp equivalent for inline elements (4dp * 2)
       fontFamily: 'monospace',
     },
     pre: {
-      backgroundColor: theme.colors.surfaceVariant,
-      color: theme.colors.onSurfaceVariant,
-      padding: 16,
-      borderRadius: 8,
+      backgroundColor: theme.colors.surfaceVariant, // MD3: Surface variant for code blocks
+      color: theme.colors.onSurfaceVariant, // MD3: On-surface-variant for text
+      padding: 16, // MD3: 16dp padding (2x base unit)
+      borderRadius: theme.roundness, // MD3: Standard roundness for blocks
       fontFamily: 'monospace',
       overflow: 'scroll',
-      marginVertical: 12,
+      marginVertical: 12, // MD3: 12dp vertical spacing (1.5x base unit)
     },
     // Blockquote styling
     blockquote: {
-      backgroundColor: theme.colors.surfaceVariant,
-      borderLeftWidth: 4,
-      borderLeftColor: theme.colors.primary,
-      paddingVertical: 8,
-      paddingHorizontal: 16,
-      marginVertical: 12,
-      marginLeft: 16,
+      backgroundColor: theme.colors.surfaceVariant, // MD3: Surface variant for emphasis
+      borderLeftWidth: 4, // MD3: 4dp accent border (0.5x base unit)
+      borderLeftColor: theme.colors.primary, // MD3: Primary color for accent
+      paddingVertical: 12, // MD3: 12dp vertical padding (1.5x base unit)
+      paddingHorizontal: 16, // MD3: 16dp horizontal padding (2x base unit)
+      marginVertical: 12, // MD3: 12dp vertical spacing (1.5x base unit)
+      marginLeft: 16, // MD3: 16dp left margin (2x base unit)
       fontStyle: 'italic',
-      color: theme.colors.onSurfaceVariant,
+      color: theme.colors.onSurfaceVariant, // MD3: On-surface-variant for text
     },
     // Image styling
     img: {
       maxWidth: '100%',
       height: 'auto',
-    }
+    },
   };
 }
 
@@ -152,7 +208,12 @@ export function getArticleTagStyles(theme: MD3Theme): Record<string, TextStyle> 
  * @param theme The theme object from `react-native-paper`.
  * @returns An object where keys are CSS class names and values are style objects.
  */
-export function getArticleClassStyles(theme: MD3Theme): Record<string, TextStyle> {
+export function getArticleClassStyles(
+  theme: MD3Theme,
+  baseFontSize: number = 16
+): Record<string, TextStyle> {
+  const ratio = baseFontSize / 16;
+
   return {
     // Image containers
     thumbinner: {
@@ -168,47 +229,83 @@ export function getArticleClassStyles(theme: MD3Theme): Record<string, TextStyle
       marginVertical: 8,
     },
     // Wikipedia-specific classes for better theme adaptation
-    infobox: {
-      backgroundColor: theme.colors.surfaceVariant,
-      borderColor: theme.colors.outline,
-      borderRadius: 8,
-      padding: 12,
-      marginVertical: 16,
-    },
     reference: {
       color: theme.colors.onSurfaceVariant,
-      fontSize: 12,
+      fontSize: 12 * ratio,
       fontStyle: 'italic',
     },
     external: {
       color: theme.colors.primary,
     },
-    // Table improvements for mobile
+    // MediaWiki wikitable class - matches Wikipedia table styling
+    // This class is applied to <table class="wikitable"> elements
     wikitable: {
-      backgroundColor: theme.colors.surface,
-      borderColor: theme.colors.outline,
-      borderRadius: 8,
+      backgroundColor: 'transparent',
+      width: '100%',
+      borderRadius: (theme as any).roundness,
       overflow: 'hidden',
-      borderWidth: 1,
+      alignSelf: 'center',
+    },
+    // Sortable tables (jQuery tablesorter)
+    sortable: {
+      backgroundColor: 'transparent',
+    },
+    'jquery-tablesorter': {
+      backgroundColor: 'transparent',
+    },
+    // Plain row headers - normal font weight, left-aligned
+    // Applied to tables with class="wikitable plainrowheaders"
+    plainrowheaders: {
+      backgroundColor: 'transparent',
+    },
+    // Collapsible tables
+    'mw-collapsible': {
+      backgroundColor: 'transparent',
+    },
+    'mw-collapsed': {
+      backgroundColor: 'transparent',
+    },
+    // Table with no borders
+    'wikitable noborder': {
+      borderWidth: 0,
+    },
+    // Table with alternating row colors (zebra striping)
+    // so zebra striping would need a custom renderer
+    'wikitable zebra': {
+      backgroundColor: 'transparent',
     },
     // Navigation boxes
     navbox: {
-      backgroundColor: theme.colors.surfaceVariant,
-      borderColor: theme.colors.outline,
-      borderRadius: 8,
-      padding: 12,
-      marginVertical: 16,
+      backgroundColor: theme.colors.surfaceVariant, // MD3: Surface variant for containers
+      borderColor: theme.colors.outlineVariant, // MD3: Outline variant for subtle borders
+      borderRadius: theme.roundness, // MD3: Standard roundness
+      padding: 12, // MD3: 12dp padding (1.5x base unit)
+      marginVertical: 16, // MD3: 16dp vertical spacing (2x base unit)
     },
     // Citation styles
     citation: {
       color: theme.colors.onSurfaceVariant,
-      fontSize: 12,
+      fontSize: 12 * ratio,
     },
     // Mobile-optimized table cells
     'mobile-table-cell': {
       minWidth: 80,
-      paddingVertical: 8,
-      paddingHorizontal: 6,
-    }
+      paddingVertical: 8, // MD3: 8dp vertical padding (1x base unit)
+      paddingHorizontal: 8, // MD3: 8dp horizontal padding (1x base unit) - increased for consistency
+    },
+    // Infobox tables - should take full container width
+    infobox: {
+      maxWidth: '100%',
+      marginLeft: -8, // Break out of section padding
+      marginRight: -8, // Break out of section padding
+      ...Platform.select({
+        web: {
+          width: 'calc(100% + 16px)' as any,
+        },
+        default: {
+          width: '100%',
+        },
+      }),
+    },
   };
 }

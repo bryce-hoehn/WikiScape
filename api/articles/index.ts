@@ -10,4 +10,3 @@ export { fetchArticleSummary } from './fetchArticleSummary';
 export { fetchArticleThumbnail } from './fetchArticleThumbnail';
 export { fetchDescription } from './fetchDescription';
 export { fetchRandomArticle } from './fetchRandomArticle';
-

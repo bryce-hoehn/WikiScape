@@ -1,4 +1,5 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '../shared';
+import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { WikipediaPage, WikipediaQueryResponse } from '@/types/api/base';
 
 /**
  * Fetch categories for a specific article using Wikipedia API
@@ -11,12 +12,12 @@ export async function fetchArticleCategories(articleTitle: string): Promise<stri
       titles: articleTitle,
       cllimit: 10, // Limit to 10 categories per article
       format: 'json',
-      origin: '*'
+      origin: '*',
     };
 
-    const response = await axiosInstance.get('', {
+    const response = await axiosInstance.get<WikipediaQueryResponse>('', {
       baseURL: WIKIPEDIA_API_CONFIG.BASE_URL,
-      params
+      params,
     });
     const data = response.data;
 
@@ -25,9 +26,9 @@ export async function fetchArticleCategories(articleTitle: string): Promise<stri
     }
 
     const categories: string[] = [];
-    const page = Object.values(data.query.pages)[0] as any;
-    
-    if (page.categories) {
+    const page = Object.values(data.query.pages)[0] as WikipediaPage | undefined;
+
+    if (page?.categories) {
       page.categories.forEach((category: { title: string }) => {
         // Remove "Category:" prefix and add to list
         const categoryName = category.title.replace('Category:', '');
@@ -37,7 +38,6 @@ export async function fetchArticleCategories(articleTitle: string): Promise<stri
 
     return categories;
   } catch (error) {
-    console.warn(`Failed to fetch categories for ${articleTitle}:`, error);
     return [];
   }
 }

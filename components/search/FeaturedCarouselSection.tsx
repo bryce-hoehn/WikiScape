@@ -1,29 +1,32 @@
 import { useFeaturedContent } from '@/context/FeaturedContentContext';
 import React from 'react';
-import FeaturedCarousel from '../featured/FeaturedCarousel';
+import { RecommendationItem } from '../../types/components';
+import { CardType } from '../../utils/cardUtils';
+import SimpleFeaturedCarousel from '../featured/SimpleFeaturedCarousel';
 import ContentSection from './ContentSection';
 import { FeaturedCarouselSkeleton } from './SkeletonComponents';
 
 interface FeaturedCarouselSectionProps {
   title: string;
-  items: any[] | null | undefined;
-  cardType?: 'on-this-day' | 'news' | 'did-you-know' | 'generic';
+  items: RecommendationItem[] | null | undefined;
+  cardType?: CardType;
   year?: number;
 }
 
 /**
  * Reusable carousel section component for SearchScreen
  */
-export default function FeaturedCarouselSection({ title, items, cardType = 'generic', year }: FeaturedCarouselSectionProps) {
+export default function FeaturedCarouselSection({
+  title,
+  items,
+  cardType = 'generic',
+  year,
+}: FeaturedCarouselSectionProps) {
   const { isLoading } = useFeaturedContent();
 
   return (
-    <ContentSection
-      title={title}
-      isLoading={isLoading}
-      skeleton={<FeaturedCarouselSkeleton />}
-    >
-      {items && <FeaturedCarousel items={items} cardType={cardType} />}
+    <ContentSection title={title} isLoading={isLoading} skeleton={<FeaturedCarouselSkeleton />}>
+      {items ? <SimpleFeaturedCarousel items={items} cardType={cardType} /> : null}
     </ContentSection>
   );
 }

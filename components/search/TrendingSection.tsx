@@ -2,21 +2,25 @@ import { useFeaturedContent } from '@/context/FeaturedContentContext';
 import React from 'react';
 import TrendingList from '../featured/Trending';
 import ContentSection from './ContentSection';
-import { FeaturedCarouselSkeleton } from './SkeletonComponents';
+import { TrendingCarouselSkeleton } from './SkeletonComponents';
+
+interface TrendingSectionProps {
+  maxItemsPerPage?: number;
+}
 
 /**
  * Trending Articles section component for SearchScreen
  */
-export default function TrendingSection() {
+export default function TrendingSection({ maxItemsPerPage = 6 }: TrendingSectionProps) {
   const { featuredContent, isLoading } = useFeaturedContent();
 
   return (
     <ContentSection
       title="Trending Articles"
       isLoading={isLoading}
-      skeleton={<FeaturedCarouselSkeleton />}
+      skeleton={<TrendingCarouselSkeleton itemsCount={maxItemsPerPage} />}
     >
-      {featuredContent?.mostread && <TrendingList />}
+      {featuredContent?.mostread ? <TrendingList maxItemsPerPage={maxItemsPerPage} /> : null}
     </ContentSection>
   );
 }

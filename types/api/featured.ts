@@ -127,3 +127,29 @@ export interface FeaturedContentResponse {
   data: FeaturedContent | null;
   error?: string;
 }
+
+/**
+ * Trending article from Wikipedia Pageviews API
+ */
+export interface TrendingArticle {
+  article: string;
+  rank: number;
+  views: number;
+  trendingRatio?: number;
+  todayViews?: number;
+  lastMonthAvg?: number;
+}
+
+/**
+ * Page view response from Wikipedia Pageviews API
+ */
+export interface PageViewResponse {
+  items: {
+    access: string;
+    articles: TrendingArticle[];
+    day: string;
+    month: string;
+    project: string;
+    year: string;
+  }[];
+}

@@ -1,19 +1,35 @@
+import { router } from 'expo-router';
 import React from 'react';
-import { View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import StandardEmptyState from '../common/StandardEmptyState';
 
 interface NoResultsStateProps {
   query: string;
+  onClearSearch?: () => void;
 }
 
-export default function NoResultsState({ query }: NoResultsStateProps) {
-  const theme = useTheme();
+export default function NoResultsState({ query, onClearSearch }: NoResultsStateProps) {
+  const suggestions = [];
+
+  if (onClearSearch) {
+    suggestions.push({
+      label: 'Clear Search',
+      action: onClearSearch,
+      icon: 'close',
+    });
+  }
+
+  suggestions.push({
+    label: 'Browse Trending',
+    action: () => router.push('/(tabs)/search'),
+    icon: 'trending-up',
+  });
 
   return (
-    <View style={{ padding: 24, alignItems: 'center' }}>
-      <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 16 }}>
-        {`No results found for "${query}"`}
-      </Text>
-    </View>
+    <StandardEmptyState
+      icon="magnify"
+      title="No Results Found"
+      description={`We couldn't find any articles matching "${query}". Try a different search term or browse trending articles.`}
+      suggestions={suggestions}
+    />
   );
 }

@@ -1,70 +1,81 @@
-import { FlashList } from '@shopify/flash-list';
-import React, { useCallback } from 'react';
-import { List, Text, useTheme } from 'react-native-paper';
-import { VisitedArticleItem } from '../../types/api';
-import { Image } from "expo-image";
+import { useQueries } from '@tanstack/react-query';
+import React, { useMemo } from 'react';
+import { fetchArticleSummary } from '../../api';
+import { VisitedArticle } from '../../hooks/storage/useVisitedArticles';
+import { Article } from '../../types/api';
+import BaseListWithHeader from './BaseListWithHeader';
 
 interface RecentArticlesListProps {
-  recentVisitedArticles: VisitedArticleItem[];
+  recentVisitedArticles: VisitedArticle[];
   onSuggestionClick: (title: string) => void;
+}
+
+interface ArticleWithData extends VisitedArticle {
+  article?: Article | null;
 }
 
 export default function RecentArticlesList({
   recentVisitedArticles,
-  onSuggestionClick
+  onSuggestionClick,
 }: RecentArticlesListProps) {
-  const theme = useTheme();
+  // Fetch only visible articles initially, lazy load others
+  const VISIBLE_ITEMS = 5;
 
-  const renderRecentItem = useCallback(({ item }: { item: VisitedArticleItem }) => (
-    <List.Item
-      title={item.title}
-      description={new Date(item.visitedAt).toLocaleDateString()}
-      left={props => (
-        item.article?.thumbnail?.source ? (
-          <Image
-            source={{ uri: item.article.thumbnail.source }}
-            style={{ width: 40, height: 40, borderRadius: 4 }}
-            contentFit="cover"
-            alt={`Thumbnail for ${item.title}`}
-            accessibilityLabel={`Thumbnail for ${item.title}`}
-          />
-        ) : (
-          <List.Icon {...props} icon="history" />
-        )
-      )}
-      onPress={() => onSuggestionClick(item.title)}
-      accessibilityLabel={`Open recently viewed article: ${item.title}`}
-      accessibilityHint={`Opens the recently viewed article: ${item.title}`}
-    />
-  ), [onSuggestionClick]);
+  // Memoize queries array to prevent React 19 strict mode crashes
+  // Only fetch the first VISIBLE_ITEMS to improve initial load performance
+  const queries = useMemo(
+    () =>
+      recentVisitedArticles.slice(0, VISIBLE_ITEMS).map((visited) => ({
+        queryKey: ['article', visited.title] as const,
+        queryFn: async () => {
+          const response = await fetchArticleSummary(visited.title);
+          return response.article;
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 30 * 60 * 1000, // 30 minutes
+        enabled: !!visited.title,
+        refetchOnWindowFocus: false, // Don't refetch on focus
+      })),
+    [recentVisitedArticles]
+  );
 
-  const renderHeader = useCallback(() => (
-    <Text 
-      variant="titleMedium" 
-      style={{ 
-        paddingHorizontal: 16, 
-        paddingVertical: 12, 
-        color: theme.colors.onSurfaceVariant,
-        fontWeight: '600',
-        backgroundColor: theme.colors.surfaceVariant,
-        marginBottom: 4
-      }}
-    >
-      Recently Viewed
-    </Text>
-  ), [theme]);
+  // Fetch article summaries for visible articles only
+  const articleQueries = useQueries({
+    queries,
+  });
+
+  // Combine visited articles with their fetched data
+  // Items beyond VISIBLE_ITEMS will have null article data (will show title only)
+  const articlesWithData = useMemo(() => {
+    return recentVisitedArticles.map((visited, index) => ({
+      ...visited,
+      // Only include article data for the first VISIBLE_ITEMS
+      article: index < VISIBLE_ITEMS ? (articleQueries[index]?.data ?? null) : null,
+    })) as ArticleWithData[];
+  }, [recentVisitedArticles, articleQueries]);
 
   return (
-    <>
-      {renderHeader()}
-      <FlashList
-        data={recentVisitedArticles}
-        renderItem={renderRecentItem}
-        keyExtractor={(item) => `recent-${item.title}-${item.visitedAt}`}
-        contentContainerStyle={{ padding: 8 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      />
-    </>
+    <BaseListWithHeader
+      data={articlesWithData}
+      headerTitle="Recently Viewed"
+      getTitle={(item) => item.title}
+      getDescription={(item) =>
+        item.article?.description || item.article?.extract?.substring(0, 150) || ''
+      }
+      getThumbnail={(item) => item.article?.thumbnail?.source || null}
+      getThumbnailDimensions={(item) =>
+        item.article?.thumbnail
+          ? {
+              width: item.article.thumbnail.width || 56,
+              height: item.article.thumbnail.height || 56,
+            }
+          : null
+      }
+      fallbackIcon="file-document-outline"
+      onItemPress={(item) => onSuggestionClick(item.title)}
+      keyExtractor={(item) => `recent-${item.title}-${item.visitedAt}`}
+      accessibilityLabel={(item) => `Open recently viewed article: ${item.title}`}
+      accessibilityHint={(item) => `Opens the recently viewed article: ${item.title}`}
+    />
   );
 }

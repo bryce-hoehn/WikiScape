@@ -1,7 +1,8 @@
+import { fetchArticleBacklinks, fetchArticleLinks, fetchArticleSummary } from '@/api';
+import useVisitedArticles from '@/hooks/storage/useVisitedArticles';
+import { RecommendationItem } from '@/types/components';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
-import { fetchArticleBacklinks, fetchArticleLinks, fetchArticleSummary } from '../../api';
-import { RecommendationItem } from '../../types/components';
-import useVisitedArticles from '../storage/useVisitedArticles';
 
 /**
  * Hook for generating article recommendations using Wikipedia's linkshere API
@@ -9,6 +10,7 @@ import useVisitedArticles from '../storage/useVisitedArticles';
  */
 export default function useBacklinkRecommendations() {
   const { visitedArticles } = useVisitedArticles();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,134 +22,192 @@ export default function useBacklinkRecommendations() {
   }, [visitedArticles]);
 
   // Get a random backlink from a visited article
-  const getRandomBacklink = useCallback(async (visitedArticleTitle: string) => {
-    try {
-      // Get backlinks for this visited article
-      const backlinkTitles = await fetchArticleBacklinks(visitedArticleTitle);
-      
-      if (backlinkTitles.length === 0) {
+  // Uses React Query for caching
+  const getRandomBacklink = useCallback(
+    async (visitedArticleTitle: string) => {
+      try {
+        // Use React Query to fetch and cache backlinks
+        const backlinkTitles = await queryClient.fetchQuery({
+          queryKey: ['article-backlinks', visitedArticleTitle],
+          queryFn: () => fetchArticleBacklinks(visitedArticleTitle),
+          staleTime: 10 * 60 * 1000, // 10 minutes - backlinks don't change often
+          gcTime: 30 * 60 * 1000, // 30 minutes
+        });
+
+        if (backlinkTitles.length === 0) {
+          return null;
+        }
+
+        // Pick a random backlink
+        const randomIndex = Math.floor(Math.random() * backlinkTitles.length);
+        const randomBacklinkTitle = backlinkTitles[randomIndex];
+
+        // Skip if this is already a visited article
+        if (visitedArticles.some((visited) => visited.title === randomBacklinkTitle)) {
+          return null;
+        }
+
+        return randomBacklinkTitle;
+      } catch (error) {
         return null;
       }
-      
-      // Pick a random backlink
-      const randomIndex = Math.floor(Math.random() * backlinkTitles.length);
-      const randomBacklinkTitle = backlinkTitles[randomIndex];
-      
-      // Skip if this is already a visited article
-      if (visitedArticles.some(visited => visited.title === randomBacklinkTitle)) {
-        return null;
-      }
-      
-      return randomBacklinkTitle;
-    } catch (error) {
-      console.warn(`Failed to fetch backlinks for ${visitedArticleTitle}:`, error);
-      return null;
-    }
-  }, [visitedArticles]);
+    },
+    [visitedArticles, queryClient]
+  );
 
   // Get a random forward link from a visited article
-  const getRandomForwardlink = useCallback(async (visitedArticleTitle: string) => {
-    try {
-      // Get forward links for this visited article
-      const forwardLinkTitles = await fetchArticleLinks(visitedArticleTitle);
-      
-      if (forwardLinkTitles.length === 0) {
-        return null;
-      }
-      
-      // Pick a random forward link
-      const randomIndex = Math.floor(Math.random() * forwardLinkTitles.length);
-      const randomForwardLinkTitle = forwardLinkTitles[randomIndex];
-      
-      // Skip if this is already a visited article
-      if (visitedArticles.some(visited => visited.title === randomForwardLinkTitle)) {
-        return null;
-      }
-      
-      return randomForwardLinkTitle;
-    } catch (error) {
-      console.warn(`Failed to fetch forward links for ${visitedArticleTitle}:`, error);
-      return null;
-    }
-  }, [visitedArticles]);
+  // Uses React Query for caching
+  const getRandomForwardlink = useCallback(
+    async (visitedArticleTitle: string) => {
+      try {
+        // Use React Query to fetch and cache forward links
+        const forwardLinkTitles = await queryClient.fetchQuery({
+          queryKey: ['article-links', visitedArticleTitle],
+          queryFn: () => fetchArticleLinks(visitedArticleTitle),
+          staleTime: 10 * 60 * 1000, // 10 minutes - links don't change often
+          gcTime: 30 * 60 * 1000, // 30 minutes
+        });
 
-  // Main recommendation function using backlinks with forward links as fallback
-  const getRecommendations = useCallback(async (limit = 10) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (visitedArticles.length === 0) {
-        return [];
-      }
-
-      const recommendations: RecommendationItem[] = [];
-      const processedTitles = new Set<string>();
-      
-      // Try to get one backlink from multiple random visited articles
-      let attempts = 0;
-      const maxAttempts = limit * 3; // Allow some retries for failed fetches
-      
-      while (recommendations.length < limit && attempts < maxAttempts) {
-        attempts++;
-        
-        // Pick a random visited article
-        const randomVisitedArticle = getRandomVisitedArticle();
-        if (!randomVisitedArticle) continue;
-        
-        // First try to get a backlink
-        let recommendationTitle = await getRandomBacklink(randomVisitedArticle.title);
-        
-        // If no backlink found, try to get a forward link as fallback
-        if (!recommendationTitle) {
-          recommendationTitle = await getRandomForwardlink(randomVisitedArticle.title);
+        if (forwardLinkTitles.length === 0) {
+          return null;
         }
-        
-        if (!recommendationTitle) continue;
-        
-        // Skip if we've already processed this title
-        if (processedTitles.has(recommendationTitle)) continue;
-        processedTitles.add(recommendationTitle);
-        
-        try {
-          // Get article details for the recommendation
-          const summaryResponse = await fetchArticleSummary(recommendationTitle);
-          if (summaryResponse.article) {
-            const recommendation: RecommendationItem = {
-              title: summaryResponse.article.title,
-              displaytitle: summaryResponse.article.displaytitle,
-              description: summaryResponse.article.description,
-              thumbnail: summaryResponse.article.thumbnail,
-              pageid: summaryResponse.article.pageid,
-            };
-            
-            recommendations.push(recommendation);
+
+        // Pick a random forward link
+        const randomIndex = Math.floor(Math.random() * forwardLinkTitles.length);
+        const randomForwardLinkTitle = forwardLinkTitles[randomIndex];
+
+        // Skip if this is already a visited article
+        if (visitedArticles.some((visited) => visited.title === randomForwardLinkTitle)) {
+          return null;
+        }
+
+        return randomForwardLinkTitle;
+      } catch (error) {
+        return null;
+      }
+    },
+    [visitedArticles, queryClient]
+  );
+
+  // Main recommendation function using backlinks OR forward links (not both)
+  const getRecommendations = useCallback(
+    async (limit = 10) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        if (visitedArticles.length === 0) {
+          return [];
+        }
+
+        const processedTitles = new Set<string>();
+        const visitedTitlesSet = new Set(visitedArticles.map((v) => v.title));
+
+        // Step 1: Collect candidate titles in parallel (backlinks OR forward links, not both)
+        const candidateTitles: string[] = [];
+        const maxSourceArticles = Math.min(visitedArticles.length, Math.ceil(limit / 2)); // Use multiple source articles
+
+        // Randomly select source articles and decide backlink vs forward link
+        const sourceArticles = [...visitedArticles]
+          .sort(() => Math.random() - 0.5)
+          .slice(0, maxSourceArticles);
+
+        // Fetch all link lists in parallel
+        const linkPromises = sourceArticles.map(async (article) => {
+          // Randomly choose backlinks OR forward links (50/50)
+          const useBacklinks = Math.random() > 0.5;
+
+          try {
+            if (useBacklinks) {
+              const backlinks = await queryClient.fetchQuery({
+                queryKey: ['article-backlinks', article.title],
+                queryFn: () => fetchArticleBacklinks(article.title),
+                staleTime: 10 * 60 * 1000,
+                gcTime: 30 * 60 * 1000,
+              });
+              return backlinks;
+            } else {
+              const forwardLinks = await queryClient.fetchQuery({
+                queryKey: ['article-links', article.title],
+                queryFn: () => fetchArticleLinks(article.title),
+                staleTime: 10 * 60 * 1000,
+                gcTime: 30 * 60 * 1000,
+              });
+              return forwardLinks;
+            }
+          } catch (error) {
+            return [];
           }
-        } catch (error) {
-          console.warn(`Failed to fetch summary for ${recommendationTitle}:`, error);
-          // Add basic recommendation even if details fail
-          recommendations.push({
-            title: recommendationTitle,
-            displaytitle: recommendationTitle,
-          });
+        });
+
+        const linkResults = await Promise.all(linkPromises);
+
+        // Flatten and shuffle all candidate titles
+        const allCandidates = linkResults
+          .flat()
+          .filter((title) => !visitedTitlesSet.has(title))
+          .sort(() => Math.random() - 0.5);
+
+        // Select unique candidates up to limit
+        for (const title of allCandidates) {
+          if (candidateTitles.length >= limit) break;
+          if (!processedTitles.has(title)) {
+            processedTitles.add(title);
+            candidateTitles.push(title);
+          }
         }
+
+        // Step 2: Fetch all summaries in parallel (major performance improvement)
+        const summaryPromises = candidateTitles.map(async (title) => {
+          try {
+            const summaryResponse = await queryClient.fetchQuery({
+              queryKey: ['article', title],
+              queryFn: async () => {
+                const response = await fetchArticleSummary(title);
+                return response.article;
+              },
+              staleTime: 5 * 60 * 1000,
+              gcTime: 30 * 60 * 1000,
+            });
+
+            if (summaryResponse) {
+              return {
+                title: summaryResponse.title,
+                displaytitle: summaryResponse.displaytitle,
+                description: summaryResponse.description,
+                extract: summaryResponse.extract,
+                thumbnail: summaryResponse.thumbnail,
+                pageid: summaryResponse.pageid,
+              } as RecommendationItem;
+            }
+            return null;
+          } catch (error) {
+            // Return basic recommendation if summary fetch fails
+            return {
+              title,
+              displaytitle: title,
+            } as RecommendationItem;
+          }
+        });
+
+        const results = await Promise.all(summaryPromises);
+        const recommendations = results.filter((r): r is RecommendationItem => r !== null);
+
+        return recommendations.slice(0, limit);
+      } catch (error) {
+        setError('Failed to fetch recommendations');
+        return [];
+      } finally {
+        setLoading(false);
       }
-      
-      return recommendations.slice(0, limit);
-        
-    } catch (error) {
-      console.warn('Failed to fetch recommendations:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch recommendations');
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, [visitedArticles, getRandomVisitedArticle, getRandomBacklink, getRandomForwardlink]);
+    },
+    [visitedArticles, queryClient]
+  );
 
   return {
     getRecommendations,
     visitedArticlesCount: visitedArticles.length,
     loading,
-    error
+    error,
   };
 }

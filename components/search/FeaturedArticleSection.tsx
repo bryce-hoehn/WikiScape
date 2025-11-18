@@ -16,7 +16,7 @@ export default function FeaturedArticleSection() {
       isLoading={isLoading}
       skeleton={<FeaturedArticleSkeleton />}
     >
-      {featuredContent?.tfa && <FeaturedArticleCard />}
+      {featuredContent?.tfa ? <FeaturedArticleCard /> : null}
     </ContentSection>
   );
 }

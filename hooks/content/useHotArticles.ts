@@ -1,184 +1,128 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchArticleSummary } from '../../api';
-import { RecommendationItem } from '../../types/components';
+import { fetchArticleSummary } from '@/api';
+import { RecommendationItem } from '@/types/components';
+import { useQueries } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface TrendingArticle {
   article: string;
 }
 
-/**
- * Hook for managing hot articles with caching and pagination
- * Extracts complex logic from HotFeed component
- */
+const ITEMS_PER_PAGE = 50;
+
+function filterUnwantedArticles(articles: TrendingArticle[]): TrendingArticle[] {
+  return articles.filter((article) => {
+    const title = article.article;
+    return !(
+      title === 'Main_Page' ||
+      title.startsWith('Special:') ||
+      title.startsWith('File:') ||
+      title.startsWith('Category:') ||
+      title.startsWith('Template:') ||
+      title.startsWith('Help:') ||
+      title.startsWith('Portal:') ||
+      title.startsWith('Wikipedia:')
+    );
+  });
+}
+
 export default function useHotArticles(trendingArticles: TrendingArticle[]) {
   const [allTrendingArticles, setAllTrendingArticles] = useState<RecommendationItem[]>([]);
-  const [displayedArticles, setDisplayedArticles] = useState<RecommendationItem[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const [articleDetailsCache, setArticleDetailsCache] = useState<Map<string, RecommendationItem>>(new Map());
   const [loadingMore, setLoadingMore] = useState(false);
-  const displayedArticlesRef = useRef<RecommendationItem[]>([]);
-  
-  const ITEMS_PER_PAGE = 20;
+  const loadMoreTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Filter out unwanted pages (Main_Page, Special: pages, etc.)
-  const filterUnwantedArticles = useCallback((articles: TrendingArticle[]) => {
-    return articles.filter(article => {
-      const title = article.article;
-      return !(
-        title === 'Main_Page' ||
-        title.startsWith('Special:') ||
-        title.startsWith('File:') ||
-        title.startsWith('Category:') ||
-        title.startsWith('Template:') ||
-        title.startsWith('Help:') ||
-        title.startsWith('Portal:') ||
-        title.startsWith('Wikipedia:')
-      );
-    });
-  }, []);
+  const displayedTitles = useMemo(() => {
+    const endIndex = (currentPage + 1) * ITEMS_PER_PAGE;
+    return allTrendingArticles.slice(0, endIndex).map((a) => a.title);
+  }, [allTrendingArticles, currentPage]);
 
-  // Create basic article objects from trending data
-  const createBasicArticles = useCallback((filteredArticles: TrendingArticle[]) => {
-    return filteredArticles.map(article => ({
-      title: article.article,
-      // description and thumbnail will be fetched below
-    }));
-  }, []);
-
-  // Fetch detailed article information
-  const fetchArticleDetails = useCallback(async (title: string): Promise<RecommendationItem | null> => {
-    try {
-      const summaryResponse = await fetchArticleSummary(title);
-      if (summaryResponse.article) {
-        return {
-          title: summaryResponse.article.title,
-          description: summaryResponse.article.description,
-          thumbnail: summaryResponse.article.thumbnail,
-          pageid: summaryResponse.article.pageid,
-        };
-      }
-    } catch (error) {
-      console.error(`Failed to fetch summary for ${title}:`, error);
-    }
-    return null;
-  }, []);
-
-  // Update displayed articles with detailed information
-  const updateArticleDetails = useCallback(async (articles: RecommendationItem[], startIndex: number) => {
-    // Use ref to avoid dependency on displayedArticles state
-    const currentDisplayed = [...displayedArticlesRef.current];
-    
-    // Process articles and collect updates
-    const updates = await Promise.all(
-      articles.map(async (article, index) => {
-        const displayIndex = startIndex + index;
-        
-        // Check cache first
-        if (articleDetailsCache.has(article.title)) {
-          const cachedDetails = articleDetailsCache.get(article.title)!;
-          return { index: displayIndex, article: cachedDetails };
+  const articleQueries = useQueries({
+    queries: displayedTitles.map((title) => ({
+      queryKey: ['article', title],
+      queryFn: async () => {
+        const response = await fetchArticleSummary(title);
+        if (response.article) {
+          return {
+            title: response.article.title,
+            description: response.article.description,
+            extract: response.article.extract,
+            thumbnail: response.article.thumbnail,
+            pageid: response.article.pageid,
+          } as RecommendationItem;
         }
-        
-        const detailedArticle = await fetchArticleDetails(article.title);
-        if (detailedArticle) {
-          // Update cache
-          setArticleDetailsCache(prev => new Map(prev).set(article.title, detailedArticle));
-          return { index: displayIndex, article: detailedArticle };
-        }
-        
-        // Return the basic article if fetch fails, but with normalized title
-        return { index: displayIndex, article };
-      })
+        return null;
+      },
+      staleTime: 10 * 60 * 1000, // 10 minutes
+      gcTime: 30 * 60 * 1000, // 30 minutes
+      enabled: !!title,
+      refetchOnWindowFocus: false, // Don't refetch on focus
+    })),
+  });
+
+  const isArticleComplete = useCallback((article: RecommendationItem | null): boolean => {
+    return !!(
+      article &&
+      article.title &&
+      article.title !== '' &&
+      (article.description !== undefined || article.extract !== undefined)
     );
-    
-    // Apply all updates at once
-    const updatedArticles = [...currentDisplayed];
-    updates.forEach(update => {
-      if (update) {
-        updatedArticles[update.index] = update.article;
-      }
-    });
-    
-    // Only update if there are actual changes - use efficient comparison
-    const hasChanges = updatedArticles.length !== currentDisplayed.length ||
-      updatedArticles.some((article, index) => {
-        const currentArticle = currentDisplayed[index];
-        return !currentArticle ||
-          article.title !== currentArticle.title ||
-          article.description !== currentArticle.description ||
-          article.pageid !== currentArticle.pageid ||
-          article.thumbnail?.source !== currentArticle.thumbnail?.source;
-      });
-    
-    if (hasChanges) {
-      setDisplayedArticles(updatedArticles);
-      displayedArticlesRef.current = updatedArticles;
-    }
-  }, [articleDetailsCache, fetchArticleDetails]);
+  }, []);
 
-  // Process trending articles when they load
+  const displayedArticles = useMemo(() => {
+    return articleQueries
+      .map((query) => query.data ?? null)
+      .filter((article): article is RecommendationItem => isArticleComplete(article));
+  }, [articleQueries, isArticleComplete]);
+
   useEffect(() => {
     if (trendingArticles.length > 0 && allTrendingArticles.length === 0) {
       const filteredArticles = filterUnwantedArticles(trendingArticles);
-      const basicArticles = createBasicArticles(filteredArticles);
-      
+      const basicArticles: RecommendationItem[] = filteredArticles.map((article) => ({
+        title: article.article,
+      }));
+
       setAllTrendingArticles(basicArticles);
-      
-      // Set basic articles immediately for fast initial render
-      const firstPageArticles = basicArticles.slice(0, ITEMS_PER_PAGE);
-      setDisplayedArticles(firstPageArticles);
-      displayedArticlesRef.current = firstPageArticles;
       setCurrentPage(1);
-      
-      // Lazy load detailed information for the first page with a small delay
-      // to allow the initial render to complete first
-      setTimeout(() => {
-        updateArticleDetails(firstPageArticles, 0);
-      }, 100);
     }
-  }, [trendingArticles, filterUnwantedArticles, createBasicArticles, updateArticleDetails, ITEMS_PER_PAGE, allTrendingArticles.length]);
+  }, [trendingArticles, allTrendingArticles.length]);
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    displayedArticlesRef.current = displayedArticles;
-  }, [displayedArticles]);
-
-  // Load more articles with pagination
   const loadMore = useCallback(async () => {
     if (allTrendingArticles.length === 0 || loadingMore) return;
-    
-    setLoadingMore(true);
-    
-    try {
-      const nextPage = currentPage + 1;
-      const startIndex = currentPage * ITEMS_PER_PAGE;
-      const endIndex = nextPage * ITEMS_PER_PAGE;
-      
-      if (startIndex >= allTrendingArticles.length) {
-        // No more articles to load
-        return;
-      }
-      
-      const nextArticles = allTrendingArticles.slice(startIndex, endIndex);
-      
-      // Add basic articles immediately for fast rendering
-      const newDisplayed = [...displayedArticles, ...nextArticles];
-      setDisplayedArticles(newDisplayed);
-      displayedArticlesRef.current = newDisplayed;
-      setCurrentPage(nextPage);
-      
-      // Lazy load detailed information for the new articles with delay
-      setTimeout(() => {
-        updateArticleDetails(nextArticles, startIndex);
-      }, 200);
-    } finally {
-      setLoadingMore(false);
+
+    const nextPage = currentPage + 1;
+    const startIndex = nextPage * ITEMS_PER_PAGE;
+
+    if (startIndex >= allTrendingArticles.length) {
+      return;
     }
-  }, [allTrendingArticles, currentPage, loadingMore, updateArticleDetails, ITEMS_PER_PAGE, displayedArticles]);
+
+    setLoadingMore(true);
+    setCurrentPage(nextPage);
+
+    if (loadMoreTimeoutRef.current) {
+      clearTimeout(loadMoreTimeoutRef.current);
+    }
+
+    loadMoreTimeoutRef.current = setTimeout(() => {
+      setLoadingMore(false);
+      loadMoreTimeoutRef.current = null;
+    }, 100);
+  }, [allTrendingArticles.length, currentPage, loadingMore]);
+
+  useEffect(() => {
+    return () => {
+      if (loadMoreTimeoutRef.current) {
+        clearTimeout(loadMoreTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const isLoadingInitial = allTrendingArticles.length > 0 && displayedArticles.length === 0;
+  const isLoading = articleQueries.some((query) => query.isLoading);
 
   return {
-    displayedArticles: displayedArticles.filter(item => item && item.title),
-    loadingMore,
+    displayedArticles,
+    loadingMore: loadingMore || isLoadingInitial || isLoading,
     loadMore,
     hasMore: currentPage * ITEMS_PER_PAGE < allTrendingArticles.length,
   };

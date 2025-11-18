@@ -12,15 +12,20 @@ export default function LoadingFooter({ loading }: LoadingFooterProps) {
   if (!loading) return null;
 
   return (
-    <View style={{ 
-      padding: 24, 
-      alignItems: 'center', 
-      flexDirection: 'row', 
-      justifyContent: 'center', 
-      gap: 12 
-    }}>
+    <View
+      style={{
+        padding: 24,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 12,
+      }}
+    >
       <ActivityIndicator size="small" color={theme.colors.primary} />
-      <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, fontWeight: '500' }}>
+      <Text
+        variant="bodyMedium"
+        style={{ color: theme.colors.onSurfaceVariant, fontWeight: '500' }}
+      >
         Loading more recommendations...
       </Text>
     </View>

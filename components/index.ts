@@ -1,6 +1,6 @@
 /**
  * Main components exports for Wikipedia Expo
- * 
+ *
  * Import from specific domains:
  * - import { DidYouKnowCarousel } from './featured';
  * - import { SearchOverlay } from './search';
@@ -15,4 +15,3 @@ export * from './common';
 export * from './featured';
 export * from './layout';
 export * from './search';
-

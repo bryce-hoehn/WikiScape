@@ -1,19 +1,32 @@
 {
+  "id": "/",
   "short_name": "WikiFlow",
   "name": "WikiFlow - Wikipedia Reader",
-  "description": "A modern Wikipedia reader with offline capabilities",
+  "description": "A modern Wikipedia reader",
   "icons": [
     {
       "src": "/icon.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "start_url": "/",
@@ -22,5 +35,6 @@
   "background_color": "#ffffff",
   "orientation": "portrait",
   "scope": "/",
-  "categories": ["education", "news", "utilities"]
+  "categories": ["education", "news", "utilities"],
+  "prefer_related_applications": false
 }

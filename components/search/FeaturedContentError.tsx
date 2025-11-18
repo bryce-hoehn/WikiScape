@@ -1,31 +1,29 @@
 import { useFeaturedContent } from '@/context/FeaturedContentContext';
+import { router } from 'expo-router';
 import React from 'react';
-import { View } from 'react-native';
-import { Button, Text, useTheme } from 'react-native-paper';
+import { getUserFriendlyError } from '../../utils/errorHandling';
+import ErrorState from '../common/ErrorState';
 
 /**
  * Fallback UI component for when featured content fails to load.
- * Provides a user-friendly message and a retry button.
+ * Provides a user-friendly message and a button to return home.
  */
 export default function FeaturedContentError() {
-  const theme = useTheme();
-  const { error, refreshFeaturedContent } = useFeaturedContent();
+  const { error } = useFeaturedContent();
+  const errorInfo = getUserFriendlyError(error || new Error('Failed to load featured content'));
+
+  const handleReturnHome = () => {
+    router.replace('/(tabs)');
+  };
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-      <Text variant="titleLarge" style={{ marginBottom: 16, textAlign: 'center' }}>
-        Unable to Load Content
-      </Text>
-      <Text variant="bodyMedium" style={{ marginBottom: 24, textAlign: 'center', color: theme.colors.onSurfaceVariant }}>
-        {error || 'There was a problem loading the featured content. Please check your connection and try again.'}
-      </Text>
-      <Button
-        mode="contained"
-        onPress={refreshFeaturedContent}
-        icon="refresh"
-      >
-        Try Again
-      </Button>
-    </View>
+    <ErrorState
+      title="Unable to Load Content"
+      message={errorInfo.userFriendlyMessage}
+      onRetry={handleReturnHome}
+      retryLabel="Return to Home"
+      showDetails={false}
+      recoverySteps={errorInfo.recoverySteps}
+    />
   );
 }

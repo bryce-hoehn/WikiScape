@@ -1,6 +1,6 @@
 /**
  * Main API exports for Wikipedia Expo
- * 
+ *
  * Import from specific domains:
  * - import { fetchArticleByTitle } from './articles';
  * - import { fetchCategoryPages } from './categories';
@@ -14,4 +14,3 @@ export * from './articles';
 export * from './categories';
 export * from './featured';
 export * from './search';
-

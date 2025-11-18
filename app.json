@@ -2,24 +2,52 @@
   "expo": {
     "name": "WikiFlow",
     "slug": "wikiflow",
-    "version": "1.0.0",
+    "version": "0.1.0-beta",
+    "description": "A modern, cross-platform Wikipedia reader built with React Native and Expo.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "wikiflow",
+    "primaryColor": "#000000",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "githubUrl": "https://github.com/bryce-hoehn/WikiFlow",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.brycehoehn.WikiFlow"
+      "bundleIdentifier": "com.brycehoehn.WikiFlow",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSExceptionDomains": {
+            "wikipedia.org": {
+              "NSExceptionAllowsInsecureHTTPLoads": false,
+              "NSIncludesSubdomains": true
+            },
+            "wikimedia.org": {
+              "NSExceptionAllowsInsecureHTTPLoads": false,
+              "NSIncludesSubdomains": true
+            }
+          }
+        },
+        "UIBackgroundModes": []
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.brycehoehn.WikiFlow"
+      "package": "com.brycehoehn.WikiFlow",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": []
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/icon.png",
+      "favicon": "./assets/images/books.png",
       "bundler": "metro",
       "name": "WikiFlow - Wikipedia Reader",
       "shortName": "WikiFlow",
@@ -32,11 +60,19 @@
       "startUrl": "/"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "asyncRoutes": {
+            "web": true,
+            "default": "development"
+          }
+        }
+      ],
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -47,13 +83,14 @@
       ],
       "expo-web-browser",
       "expo-localization",
-      "expo-font"
+      "expo-font",
+      "expo-asset",
+      "expo-audio",
+      "expo-video"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     },
-    "sdkVersion": "54.0.0",
     "extra": {
       "router": {},
       "eas": {

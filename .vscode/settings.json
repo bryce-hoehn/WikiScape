@@ -1,7 +1,28 @@
 {
   "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
+  },
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "[javascript]": {
+    "editor.formatOnSave": true
+  },
+  "[javascriptreact]": {
+    "editor.formatOnSave": true
+  },
+  "[typescript]": {
+    "editor.formatOnSave": true
+  },
+  "[typescriptreact]": {
+    "editor.formatOnSave": true
+  },
+  "[json]": {
+    "editor.formatOnSave": true
+  },
+  "[jsonc]": {
+    "editor.formatOnSave": true
   }
 }

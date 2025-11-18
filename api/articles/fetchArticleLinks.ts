@@ -1,4 +1,4 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '../shared';
+import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 
 interface LinksResponse {
   query: {
@@ -30,7 +30,7 @@ export const fetchArticleLinks = async (articleTitle: string): Promise<string[]>
         titles: articleTitle,
         pllimit: 50, // Get up to 50 forward links
         format: 'json',
-        origin: '*'
+        origin: '*',
       },
     });
 
@@ -45,9 +45,10 @@ export const fetchArticleLinks = async (articleTitle: string): Promise<string[]>
 
     // Filter to only include main namespace articles (ns: 0) and exclude unwanted pages
     return links
-      .filter(link => {
+      .filter((link) => {
         const title = link.title;
-        return link.ns === 0 && // Only main namespace articles
+        return (
+          link.ns === 0 && // Only main namespace articles
           !(
             title === 'Main_Page' ||
             title.startsWith('Special:') ||
@@ -57,12 +58,18 @@ export const fetchArticleLinks = async (articleTitle: string): Promise<string[]>
             title.startsWith('Help:') ||
             title.startsWith('Portal:') ||
             title.startsWith('Wikipedia:')
-          );
+          )
+        );
       })
-      .map(link => link.title);
-
+      .map((link) => link.title);
   } catch (error: unknown) {
-    console.error(`Failed to fetch forward links for ${articleTitle}:`, (error as { response?: { status?: number; data?: unknown } }).response?.status, (error as { response?: { data?: unknown } }).response?.data || error);
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.error(
+        `Failed to fetch forward links for ${articleTitle}:`,
+        (error as { response?: { status?: number; data?: unknown } }).response?.status,
+        (error as { response?: { data?: unknown } }).response?.data || error
+      );
+    }
     return [];
   }
 };

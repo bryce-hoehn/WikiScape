@@ -16,7 +16,7 @@ export default function FeaturedPictureSection() {
       isLoading={isLoading}
       skeleton={<FeaturedPictureSkeleton />}
     >
-      {featuredContent?.image && <FeaturedPictureCard />}
+      {featuredContent?.image ? <FeaturedPictureCard /> : null}
     </ContentSection>
   );
 }

@@ -129,6 +129,49 @@ export interface ApiError {
 /**
  * Type guard for Axios errors
  */
-export function isAxiosError(error: unknown): error is { response?: { status?: number; data?: unknown }; code?: string; message: string } {
+export function isAxiosError(
+  error: unknown
+): error is { response?: { status?: number; data?: unknown }; code?: string; message: string } {
   return typeof error === 'object' && error !== null && 'message' in error;
+}
+
+/**
+ * Category member from Wikipedia Action API
+ */
+export interface CategoryMember {
+  pageid: number;
+  title: string;
+  ns: number;
+}
+
+/**
+ * Wikipedia Action API query response structure
+ */
+export interface WikipediaQueryResponse {
+  query?: {
+    pages?: Record<string, WikipediaPage>;
+    search?: unknown[];
+    categorymembers?: CategoryMember[];
+  };
+}
+
+/**
+ * Wikipedia page structure from Action API
+ */
+export interface WikipediaPage {
+  pageid: number;
+  title: string;
+  ns?: number;
+  categories?: Array<{ title: string }>;
+  [key: string]: unknown;
+}
+
+/**
+ * Wikipedia Action API parameters
+ */
+export interface WikipediaActionApiParams {
+  action: string;
+  format: string;
+  origin?: string;
+  [key: string]: unknown;
 }

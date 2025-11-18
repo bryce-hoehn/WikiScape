@@ -1,3 +1,4 @@
+import { SPACING } from '@/constants/spacing';
 import React from 'react';
 import { View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
@@ -13,11 +14,11 @@ interface ContentSectionProps {
  * Reusable content section component for SearchScreen
  * Handles title, loading state, and content rendering
  */
-export default function ContentSection({ 
-  title, 
-  children, 
-  isLoading = false, 
-  skeleton 
+export default function ContentSection({
+  title,
+  children,
+  isLoading = false,
+  skeleton,
 }: ContentSectionProps) {
   const theme = useTheme();
 
@@ -30,18 +31,26 @@ export default function ContentSection({
   }
 
   return (
-    <View style={{ marginBottom: 24 }}>
-      <Text 
-        variant="headlineMedium" 
-        style={{ 
-          marginBottom: 8, 
-          fontWeight: 'bold',
-          color: theme.colors.onSurface
+    <View
+      style={{
+        width: '100%',
+        marginBottom: SPACING.lg,
+        backgroundColor: theme.colors.background,
+        flex: 1,
+      }}
+    >
+      <Text
+        variant="headlineMedium"
+        style={{
+          marginBottom: SPACING.sm,
+          fontWeight: '700', // MD3: Use 700 for headlineMedium emphasis instead of 'bold'
+          color: theme.colors.onSurface,
+          textAlign: 'center',
         }}
       >
         {title}
       </Text>
-      {children}
+      <View style={{ width: '100%', flex: 1 }}>{children}</View>
     </View>
   );
 }

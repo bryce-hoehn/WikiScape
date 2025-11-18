@@ -1,5 +1,11 @@
-import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig, isAxiosError } from 'axios';
+import axios, {
+  AxiosInstance,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+  isAxiosError,
+} from 'axios';
 import { Platform } from 'react-native';
+import { getApiUserEmail, getAppVersion } from '../../utils/env';
 
 /**
  * Wikipedia API Configuration
@@ -10,9 +16,10 @@ import { Platform } from 'react-native';
 
 // Wikipedia API configuration
 export const WIKIPEDIA_API_CONFIG = {
-  API_USER_AGENT: 'WikipediaExpo/0.1 (bryce.hoehn@mailbox.org)',
+  API_USER_AGENT: `WikiFlow/${getAppVersion()} (${getApiUserEmail()})`,
   BASE_URL: 'https://en.wikipedia.org/w/api.php',
   WIKIMEDIA_BASE_URL: 'https://api.wikimedia.org',
+  WIKIMEDIA_PAGEVIEWS_BASE_URL: 'https://wikimedia.org/api/rest_v1', // Pageviews API uses wikimedia.org (not api.wikimedia.org)
   REST_API_BASE_URL: 'https://en.wikipedia.org/api/rest_v1',
   CORE_API_BASE_URL: 'https://api.wikimedia.org/core/v1/wikipedia/en',
 };
@@ -31,7 +38,7 @@ let lastRequestTime = 0;
 
 // Set headers for Wikipedia API
 const headers: Record<string, string> = {
-  'Accept': 'application/json',
+  Accept: 'application/json',
 };
 
 if (Platform.OS !== 'web') {
@@ -40,23 +47,32 @@ if (Platform.OS !== 'web') {
 }
 
 // Single Axios instance for all Wikipedia API calls
+// Increased timeout and centralized instance to reduce intermittent network failures.
 export const axiosInstance: AxiosInstance = axios.create({
   headers,
   withCredentials: false,
-  timeout: 8000, // Reduced from 10s to 8s for better UX
+  timeout: 15000, // Increased to 15s to mitigate intermittent network issues
 });
 
-// Add rate limiting to request interceptor
+// Add rate limiting and default params to request interceptor
 axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const now = Date.now();
     const timeSinceLastRequest = now - lastRequestTime;
-    
+
     if (timeSinceLastRequest < RATE_LIMIT_CONFIG.MIN_INTERVAL_MS) {
       const waitTime = RATE_LIMIT_CONFIG.MIN_INTERVAL_MS - timeSinceLastRequest;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
-    
+
+    // Add origin=* parameter to all requests (for CORS/API compatibility)
+    if (!config.params) {
+      config.params = {};
+    }
+    if (!config.params.origin) {
+      config.params.origin = '*';
+    }
+
     lastRequestTime = Date.now();
     return config;
   },
@@ -65,24 +81,44 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Handle rate limit errors gracefully with improved retry logic
+// Handle rate limit errors gracefully with improved retry logic, plus retries for network errors.
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: unknown) => {
     if (isAxiosError(error)) {
-      // Handle rate limiting (429)
+      const config = (error.config as InternalAxiosRequestConfig & { __retryCount?: number }) || {};
+      config.__retryCount = config.__retryCount ?? 0;
+      const maxRetries = 3;
+
+      // Handle rate limiting (429) using 'Retry-After' when available
       if (error.response?.status === 429) {
         const retryAfter = parseInt(error.response.headers['retry-after'] || '1', 10) * 1000;
-        console.warn(`Rate limited by Wikipedia API. Retrying after ${retryAfter}ms...`);
-        await new Promise(resolve => setTimeout(resolve, retryAfter));
+        await new Promise((resolve) => setTimeout(resolve, retryAfter));
         return axiosInstance.request(error.config as InternalAxiosRequestConfig);
       }
-      
-      // Handle server errors (5xx) with retry
+
+      // Network errors / timeouts (no response) - retry with exponential backoff
+      const isNetworkError =
+        !error.response ||
+        error.code === 'ECONNABORTED' ||
+        (error.message && error.message.toLowerCase().includes('network error'));
+      if (isNetworkError) {
+        if (config && (config.__retryCount ?? 0) < maxRetries) {
+          const backoff = Math.pow(2, config.__retryCount ?? 0) * 500; // 500ms, 1s, 2s
+          config.__retryCount = (config.__retryCount ?? 0) + 1;
+          await new Promise((resolve) => setTimeout(resolve, backoff));
+          return axiosInstance.request(config as InternalAxiosRequestConfig);
+        }
+      }
+
+      // Handle server errors (5xx) with retry and exponential backoff
       if (error.response?.status && error.response.status >= 500) {
-        console.warn(`Server error ${error.response.status}. Retrying after 2s...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        return axiosInstance.request(error.config as InternalAxiosRequestConfig);
+        if (config && (config.__retryCount ?? 0) < maxRetries) {
+          const backoff = Math.pow(2, config.__retryCount ?? 0) * 1000; // 1s, 2s, 4s
+          config.__retryCount = (config.__retryCount ?? 0) + 1;
+          await new Promise((resolve) => setTimeout(resolve, backoff));
+          return axiosInstance.request(config as InternalAxiosRequestConfig);
+        }
       }
     }
     return Promise.reject(error);
@@ -95,7 +131,7 @@ export const fetchConcurrently = async <T, R>(
   requestFn: (item: T) => Promise<R>
 ): Promise<R[]> => {
   const fulfilledResults: R[] = [];
-  
+
   // Process items sequentially with rate limiting
   for (const item of items) {
     try {
@@ -103,9 +139,8 @@ export const fetchConcurrently = async <T, R>(
       fulfilledResults.push(result);
     } catch (error) {
       // Skip failed requests but continue with others
-      console.warn('[RateLimitDebug] Request failed in fetchConcurrently:', error);
     }
   }
-  
+
   return fulfilledResults;
 };

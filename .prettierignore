@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.expo/
+dist/
+web-build/
+.expo-shared/
+
+# Generated files
+.expo/types/
+expo-env.d.ts
+*.tsbuildinfo
+
+# Native folders
+ios/
+android/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+*.pem
+
+# IDE
+.vscode/
+.idea/
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Config files that shouldn't be formatted
+*.config.js
+.eslintrc.js
+
+# Virtual environments
+.venv/
+venv/
+
+# Python files (if any)
+*.py
+

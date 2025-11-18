@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchTrendingArticles } from '../../api';
+import { fetchTrendingArticles } from '@/api';
 
 /**
  * Hook for fetching trending articles with proper caching
@@ -12,7 +12,9 @@ export default function useTrendingArticles() {
       try {
         return await fetchTrendingArticles();
       } catch (error) {
-        console.error('Trending articles fetch failed:', error);
+        if (typeof __DEV__ !== 'undefined' && __DEV__) {
+          console.error('Trending articles fetch failed:', error);
+        }
         return [];
       }
     },

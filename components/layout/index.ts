@@ -2,4 +2,4 @@
  * Layout components
  */
 
-// Layout components will be added here as needed
+export { default as ContentWithSidebar } from './ContentWithSidebar';

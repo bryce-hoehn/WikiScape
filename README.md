@@ -1,160 +1,157 @@
 # WikiFlow
 
-A modern, cross-platform Wikipedia reader built with React Native and Expo. Explore Wikipedia with a beautiful, intuitive interface optimized for mobile devices. Experience the smooth flow of knowledge discovery.
+<p align="center">
+  <img src="./assets/images/icon.png" alt="wikiflow logo" />
+</p>
+
+[Demo](https://wikiflow.expo.app/)
+
+A cross-platform Wikipedia reader built with React Native and Expo. This project is my final passion project required for my UX Master's Degree at Kent State. The goal of the project is to provide a more educational alternative to social media platforms like X utilizing the same attention design principles that makes these platforms addictive.
+
+## About This Project
+
+This is an educational project demonstrating UX principles, modern mobile app development, and API integration. I built it to explore:
+
+- How to create intuitive navigation patterns for content discovery
+- Ways to personalize content based on user reading habits
+- Modern React Native development practices
+- Combining theory of information organization with practical interaction design
+
+The app is functional but has not been thoroughly tested. Consider it a work in progress and a learning exercise.
 
 ## Features
 
-### 🏠 Home Screen
-- **For You Feed**: Personalized article recommendations based on your reading history
-- **Hot Articles**: Trending content from Wikipedia's most read API
-- **Random Articles**: Discover new topics with random article exploration
-- **Featured Content Carousel**: Interactive carousel with "On This Day", "Did You Know", and news cards
+### Content Discovery
 
-### 🔍 Search & Discovery
-- **Smart Search**: Real-time search suggestions with Wikipedia's API
-- **Featured Content**: Today's featured article, picture of the day, and more
-- **Trending Articles**: Most-read articles with daily updates
-- **Categories**: Browse Wikipedia by topic categories with visual icons
+- **For You Feed**: Personalized recommendations based on reading history
+- **Popular Articles**: Top read articles on Wikipedia
+- **Random Articles**: Discover new topics
+- **Featured Content**: Daily featured articles, "On This Day" entries, and more
 
-### 📚 Reading Experience
-- **Bookmarks**: Save articles for offline reading with persistent storage
-- **Dark Mode**: Comfortable reading in any lighting with automatic theme switching
-- **Responsive Design**: Optimized for mobile and tablet screens
-- **Article Navigation**: Easy navigation between related articles with backlink recommendations
-- **Image Modal**: Full-screen image viewing with pinch-to-zoom
-- **Scroll-to-Top FAB**: Floating action button that appears when scrolling down, providing quick navigation back to the top
+### Reading Experience
 
-### 🎨 Modern UI
-- **Material Design**: Clean, modern interface using React Native Paper
-- **Smooth Animations**: Fluid transitions and interactions with Reanimated
-- **Accessibility**: Full accessibility support with screen reader compatibility
+- **Bookmarks**: Save articles for later
+- **Dark Mode**: Automatic theme switching
+- **Article Navigation**: Easy browsing between related articles
+- **Responsive Design**: Works on any device with a web browser
+
+### Search & Browse
+
+- **Smart Search**: Real-time Wikipedia search suggestions
+- **Categories**: Browse by topic with visual navigation
+- **Trending**: Most-read articles
+
+### Accessibility
+
+- **Screen Reader Support**: ARIA labels and accessibility hints throughout
+- **Text Customization**: Users can change the global font style and size in settings
+- **Reduced Motion**: Reduced motion option
+- **High Contrast Themes**: Multiple high contrast themes available
+- **Focus Management**: Clear focus indicators for keyboard users
+- **Alt Text**: Robust mechanisms for extracting alt text from articles with multiple fallbacks
 
 ## Tech Stack
 
-- **Framework**: React Native with Expo SDK 54
-- **Navigation**: Expo Router (file-based routing) with typed routes
-- **UI Library**: React Native Paper with Material Design
-- **State Management**: React Context + TanStack Query for API state
-- **TypeScript**: Full type safety with strict configuration
-- **Storage**: AsyncStorage for offline bookmarks
-- **Performance**: FlashList for efficient list rendering
-- **Animations**: React Native Reanimated for smooth interactions
-- **Image Handling**: Expo Image for optimized image loading
+- **React Native** with Expo SDK 54
+- **Expo Router** for file-based navigation
+- **React Native Paper** for Material Design components
+- **TypeScript** for type safety
+- **TanStack Query** for API state management
+- **AsyncStorage** for local data persistence
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
+
+- Node.js 18 or higher
 - npm or yarn
-- Expo CLI
+- Expo Go app on your phone (for mobile testing)
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
+1. Clone the repository:
+
+   ```
    git clone https://github.com/bryce-hoehn/WikiFlow
    cd WikipediaExpo
    ```
 
-2. **Install dependencies**
-   ```bash
+2. Install dependencies:
+
+   ```
    npm install
    ```
 
-3. **Start the development server**
+3. Start the development server:
+
    ```bash
    npx expo start
    ```
 
-4. **Run on your preferred platform**
-   - Press `a` for Android
-   - Press `i` for iOS  
-   - Press `w` for web
-   - Scan QR code with Expo Go app
+4. Run on your preferred platform:
+   - Press `w` for web browser
+   - Press `a` for Android emulator
+   - Press `i` for iOS simulator
+   - Scan the QR code with Expo Go on your phone
 
 ## Project Structure
 
 ```
 WikipediaExpo/
-├── app/                    # Expo Router app directory
-│   ├── (tabs)/            # Bottom tab navigation (Home, Categories, Search, Bookmarks, Settings)
-│   ├── (zArticleStack)/   # Article detail screens with navigation stack
-│   └── (zCategoryStack)/  # Category browsing screens
-├── components/            # Reusable UI components
-│   ├── article/          # Article display components
-│   ├── featured/         # Featured content components
-│   ├── home/             # Home screen feed components
-│   ├── search/           # Search interface components
-│   ├── bookmarks/        # Bookmark management components
-│   └── layout/           # Layout and navigation components
-├── hooks/                # Custom React hooks
-│   ├── articles/         # Article-related hooks
-│   ├── content/          # Content fetching hooks
-│   ├── search/           # Search functionality hooks
-│   └── ui/               # UI interaction hooks
-├── api/                  # Wikipedia API integrations
-│   ├── articles/         # Article data fetching
-│   ├── categories/       # Category browsing
-│   ├── featured/         # Featured content
-│   └── search/           # Search functionality
-├── types/                # TypeScript type definitions
-├── context/              # React Context providers (Bookmarks, Preferences, Featured Content)
-├── utils/                # Utility functions (HTML parsing, error handling, storage)
-├── services/             # Service layer (Bookmark management)
-└── assets/               # Images and icons (category icons, app icons)
+├── app/                    # Expo Router screens
+│   ├── (tabs)/            # Main navigation tabs
+│   └── article/            # Article detail screens
+├── components/             # Reusable UI components
+├── hooks/                 # Custom React hooks
+├── api/                   # Wikipedia API integrations
+├── context/                # React Context providers
+├── utils/                  # Helper functions
+└── types/                  # TypeScript definitions
 ```
 
 ## API Integration
 
-The app integrates with multiple Wikipedia APIs:
-- **Featured Content API**: Today's featured article, picture of the day, "On This Day", and news
-- **Pageviews API**: Trending articles and most-read content
-- **Search API**: Real-time search suggestions and article search
-- **Article API**: Article summaries, HTML content, thumbnails, and metadata
-- **Categories API**: Category browsing and navigation
-- **Backlinks API**: Related article recommendations
+This app uses Wikipedia's public APIs:
 
-## Key Features Implementation
+- Featured Content API
+- Pageviews API
+- Search API
+- Article API
+- Categories API
 
-### Article Reading
-- HTML content parsing and rendering with custom styles
-- Image modal with zoom and pan gestures
-- Backlink recommendations for content discovery
-- Article thumbnails and metadata display
+All content is provided by Wikipedia under their standard licensing terms.
 
-### Content Discovery
-- Multiple feed types (For You, Hot, Random)
-- Category-based browsing with visual icons
-- Trending articles with pagination
-- Featured content carousel with different card types
+## Known Limitations
 
-### User Experience
-- Persistent bookmarks with AsyncStorage
-- Visited article tracking
-- Debounced search for performance
-- Error boundaries and loading states
-- Responsive design for all screen sizes
+- Recommendation algorithm is extremely basic
+- Probably still needs some performance optimization
+- Error handling could be more robust
+- Limited testing
+- Media player does not work
+- API calls are directly to Wikimedia's public API and thus abide by their rate limits
+- The codebase is still being refined as I learn
 
-## Contributing
+## Third-Party Libraries
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+This project uses many excellent open-source libraries. Major dependencies include:
 
-## License
+- **Expo** - Development platform and tooling
+- **React Native Paper** - Material Design components
+- **TanStack Query** - Data fetching and caching
+- **React Native Reanimated** - Animations
+- **Expo Router** - File-based routing
+- **FlashList** - High-performance list rendering
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+All dependencies are listed in `package.json` with their respective licenses. Most use MIT or Apache 2.0 licenses.
 
 ## Acknowledgments
 
-- Wikipedia for providing the content and APIs
-- Expo team for the excellent development platform
-- React Native community for the ecosystem
-- React Native Paper for the UI components
-- TanStack Query for efficient data fetching
+- **Wikipedia** for providing the content and APIs that make this project possible
+- **Expo** team for the excellent development platform
+- **React Native** community for the ecosystem and support
+- **komsiatun** from Noun Project for the book icon used in the logo
+- All the open-source maintainers whose libraries I've used
 
----
+## License
 
-**WikiFlow** - Where knowledge flows smoothly.
+MIT License. See LICENSE.
