@@ -1,7 +1,7 @@
 # WikiFlow
 
 <p align="center">
-  <img src="./assets/images/icon.png" alt="wikiflow logo" />
+  <img src="./assets/images/icon.png" alt="wikiflow logo" height=128 width=128 />
 </p>
 
 [Demo](https://wikiflow.expo.app/)
