@@ -1,8 +1,6 @@
-import { fetchArticleSummary } from '@/api/articles';
-import { fetchDescription } from '@/api/articles/fetchDescription';
-import { actionAxiosInstance, fetchConcurrently, restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { actionAxiosInstance, restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 import { CategoryArticle, CategoryPagesResponse, CategorySubcategory } from '@/types/api';
-import { CategoryMember, WikipediaActionApiParams, WikipediaQueryResponse } from '@/types/api/base';
+import { CategoryMember, ImageThumbnail, WikipediaActionApiParams, WikipediaPage, WikipediaQueryResponse } from '@/types/api/base';
 
 /**
  * Fetch category pages with Wikipedia API compliance
@@ -56,52 +54,85 @@ export const fetchCategoryPages = async (categoryTitle: string): Promise<Categor
       }
     }
 
-    // Process articles in parallel with concurrency limit (up to 5 concurrent)
-    const articleResults = await fetchConcurrently(
-      articleMembers,
-      async (member: CategoryMember): Promise<CategoryArticle | null> => {
+    // Batch fetch article data using Action API (much faster than individual REST calls)
+    if (articleMembers.length > 0) {
+      const articleTitles = articleMembers.map((m) => m.title);
+      // Wikipedia API allows up to 50 titles per request, so we may need to batch
+      const BATCH_SIZE = 50;
+      const batches: string[][] = [];
+      
+      for (let i = 0; i < articleTitles.length; i += BATCH_SIZE) {
+        batches.push(articleTitles.slice(i, i + BATCH_SIZE));
+      }
+
+      for (const batch of batches) {
         try {
-          // Use REST API summary endpoint for thumbnails and descriptions
-          const summaryUrl = `/page/summary/${encodeURIComponent(member.title)}`;
-          const summaryResponse = await restAxiosInstance.get(summaryUrl, {
-            baseURL: WIKIPEDIA_API_CONFIG.REST_API_BASE_URL,
-          });
-          const summaryData = summaryResponse.data;
-
-          return {
-            title: summaryData.title,
-            description: summaryData.description || summaryData.extract?.substring(0, 150) || '',
-            thumbnail: summaryData.thumbnail?.source || '',
-            pageid: summaryData.pageid || member.pageid,
+          const titlesParam = batch.join('|');
+          const batchParams: WikipediaActionApiParams = {
+            action: 'query',
+            prop: 'pageimages|extracts',
+            titles: titlesParam,
+            piprop: 'thumbnail',
+            pithumbsize: 300,
+            pilimit: 50,
+            exintro: true,
+            explaintext: true,
+            exlimit: 50,
+            format: 'json',
+            origin: '*',
           };
-        } catch (error) {
-          // Fallback to original methods
-          try {
-            const articleResponse = await fetchArticleSummary(member.title);
-            const description = await fetchDescription(member.title);
 
-            return {
-              title: member.title,
-              description: description || articleResponse?.article?.description || '',
-              thumbnail: articleResponse?.article?.thumbnail?.source || '',
-              pageid: member.pageid,
-            };
-          } catch (fallbackError) {
-            // Return basic article info without description/thumbnail
-            return {
-              title: member.title,
-              description: '',
-              thumbnail: '',
-              pageid: member.pageid,
-            };
+          const batchResponse = await actionAxiosInstance.get<WikipediaQueryResponse>('', {
+            baseURL: WIKIPEDIA_API_CONFIG.BASE_URL,
+            params: batchParams,
+          });
+
+          const pages = batchResponse.data.query?.pages;
+          if (pages) {
+            // Pages are keyed by pageid (as string) in the response
+            for (const page of Object.values(pages)) {
+              const pageData = page as WikipediaPage & { extract?: string; thumbnail?: ImageThumbnail };
+              const member = articleMembers.find((m) => m.pageid === pageData.pageid || m.title === pageData.title);
+              if (member) {
+                articles.push({
+                  title: pageData.title,
+                  description: pageData.extract?.substring(0, 150) || '',
+                  thumbnail: pageData.thumbnail?.source || '',
+                  pageid: pageData.pageid || member.pageid,
+                });
+              }
+            }
+          }
+        } catch (error) {
+          // If batch fails, fall back to individual requests for this batch
+          const batchMembers = articleMembers.filter((m) => batch.includes(m.title));
+          for (const member of batchMembers) {
+            try {
+              const summaryUrl = `/page/summary/${encodeURIComponent(member.title)}`;
+              const summaryResponse = await restAxiosInstance.get(summaryUrl, {
+                baseURL: WIKIPEDIA_API_CONFIG.REST_API_BASE_URL,
+              });
+              const summaryData = summaryResponse.data;
+
+              articles.push({
+                title: summaryData.title,
+                description: summaryData.description || summaryData.extract?.substring(0, 150) || '',
+                thumbnail: summaryData.thumbnail?.source || '',
+                pageid: summaryData.pageid || member.pageid,
+              });
+            } catch (fallbackError) {
+              // Return basic article info without description/thumbnail
+              articles.push({
+                title: member.title,
+                description: '',
+                thumbnail: '',
+                pageid: member.pageid,
+              });
+            }
           }
         }
-      },
-      5 // Max 5 concurrent requests (matches REST API limit)
-    );
-
-    // Filter out null results and add to articles array
-    articles.push(...articleResults.filter((article): article is CategoryArticle => article !== null));
+      }
+    }
 
     return { articles, subcategories };
   } catch (error: unknown) {
