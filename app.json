@@ -36,7 +36,7 @@
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
+      "predictiveBackGestureEnabled": true,
       "package": "com.brycehoehn.WikiScroll",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",

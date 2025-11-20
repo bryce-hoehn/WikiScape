@@ -167,6 +167,8 @@ function InnerLayout() {
                   screenOptions={{
                     headerShown: false,
                     contentStyle: { backgroundColor: theme.colors.background },
+                    gestureEnabled: true, // Enable swipe-back gesture on iOS
+                    animation: 'default', // Use default slide animation
                   }}
                 >
                   <Stack.Screen name="(tabs)" />
