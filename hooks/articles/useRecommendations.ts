@@ -3,10 +3,12 @@ import {
   fetchArticleBacklinksBatch,
   fetchArticleLinks,
   fetchArticleLinksBatch,
+  fetchArticleSummariesBatch,
   fetchArticleSummary,
 } from '@/api';
 import useArticleLinks from '@/hooks/storage/useArticleLinks';
 import useVisitedArticles from '@/hooks/storage/useVisitedArticles';
+import { Article } from '@/types/api';
 import { RecommendationItem } from '@/types/components';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
@@ -137,57 +139,64 @@ export default function useBacklinkRecommendations() {
         // Select candidates up to limit
         const candidateTitles = candidateArray.slice(0, limit);
 
-        // Step 2: Fetch summaries with early termination for better performance
-        // Only fetch summaries for the exact number we need (limit), not all candidates
-        const recommendations: RecommendationItem[] = [];
-        const summaryPromises: Promise<RecommendationItem | null>[] = [];
-
-        // Fetch summaries in batches to allow early termination
-        // Request a few extra to account for potential failures
+        // Step 2: Batch fetch summaries for all candidates at once (much faster)
         const fetchLimit = Math.min(candidateTitles.length, limit + 5);
+        const titlesToFetch = candidateTitles.slice(0, fetchLimit);
         
-        for (let i = 0; i < fetchLimit && recommendations.length < limit; i++) {
-          const title = candidateTitles[i];
-          const promise = (async () => {
-          try {
-            const summaryResponse = await queryClient.fetchQuery({
-              queryKey: ['article', title],
-              queryFn: async () => {
-                const response = await fetchArticleSummary(title);
-                return response.article;
-              },
-              staleTime: 5 * 60 * 1000,
-              gcTime: 30 * 60 * 1000,
-            });
-
-            if (summaryResponse) {
-              return {
-                title: summaryResponse.title,
-                displaytitle: summaryResponse.displaytitle,
-                description: summaryResponse.description,
-                extract: summaryResponse.extract,
-                thumbnail: summaryResponse.thumbnail,
-                pageid: summaryResponse.pageid,
-              } as RecommendationItem;
-            }
-            return null;
-          } catch (error) {
-            // Return basic recommendation if summary fetch fails
-            return {
-              title,
-              displaytitle: title,
-            } as RecommendationItem;
+        let summariesMap: Record<string, Article | null> = {};
+        try {
+          summariesMap = await queryClient.fetchQuery({
+            queryKey: ['article-summaries-batch', titlesToFetch.sort().join('|')],
+            queryFn: () => fetchArticleSummariesBatch(titlesToFetch),
+            staleTime: 5 * 60 * 1000,
+            gcTime: 30 * 60 * 1000,
+          });
+        } catch (error) {
+          // If batch fails, fall back to individual fetches
+          if (typeof __DEV__ !== 'undefined' && __DEV__) {
+            console.warn('Batch summary fetch failed, falling back to individual fetches:', error);
           }
-          })();
-
-          summaryPromises.push(promise);
+          for (const title of titlesToFetch) {
+            try {
+              const response = await queryClient.fetchQuery({
+                queryKey: ['article', title],
+                queryFn: async () => {
+                  const response = await fetchArticleSummary(title);
+                  return response.article;
+                },
+                staleTime: 5 * 60 * 1000,
+                gcTime: 30 * 60 * 1000,
+              });
+              if (response) {
+                summariesMap[title] = response;
+              }
+            } catch {
+              summariesMap[title] = null;
+            }
+          }
         }
 
-        // Wait for all promises and collect valid recommendations
-        const results = await Promise.all(summaryPromises);
-        for (const result of results) {
-          if (result && recommendations.length < limit) {
-            recommendations.push(result);
+        // Convert summaries to recommendations
+        const recommendations: RecommendationItem[] = [];
+        for (const title of titlesToFetch) {
+          if (recommendations.length >= limit) break;
+          
+          const article = summariesMap[title];
+          if (article) {
+            recommendations.push({
+              title: article.title,
+              displaytitle: article.displaytitle || article.title,
+              description: article.description,
+              extract: article.extract,
+              thumbnail: article.thumbnail,
+              pageid: article.pageid,
+            } as RecommendationItem);
+          } else {
+            // Include basic recommendation even if fetch failed
+            recommendations.push({
+              title,
+              displaytitle: title,
+            } as RecommendationItem);
           }
         }
 

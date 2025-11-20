@@ -1,6 +1,6 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import React, { useMemo } from 'react';
-import { fetchArticleSummary } from '../../api';
+import { fetchArticleSummariesBatch } from '../../api';
 import { VisitedArticle } from '../../hooks/storage/useVisitedArticles';
 import { Article } from '../../types/api';
 import BaseListWithHeader from './BaseListWithHeader';
@@ -21,27 +21,19 @@ export default function RecentArticlesList({
   // Fetch only visible articles initially, lazy load others
   const VISIBLE_ITEMS = 5;
 
-  // Memoize queries array to prevent React 19 strict mode crashes
-  // Only fetch the first VISIBLE_ITEMS to improve initial load performance
-  const queries = useMemo(
-    () =>
-      recentVisitedArticles.slice(0, VISIBLE_ITEMS).map((visited) => ({
-        queryKey: ['article', visited.title] as const,
-        queryFn: async () => {
-          const response = await fetchArticleSummary(visited.title);
-          return response.article;
-        },
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 30 * 60 * 1000, // 30 minutes
-        enabled: !!visited.title,
-        refetchOnWindowFocus: false, // Don't refetch on focus
-      })),
+  // Batch fetch visible article summaries (much faster)
+  const visibleTitles = useMemo(
+    () => recentVisitedArticles.slice(0, VISIBLE_ITEMS).map((visited) => visited.title),
     [recentVisitedArticles]
   );
 
-  // Fetch article summaries for visible articles only
-  const articleQueries = useQueries({
-    queries,
+  const { data: summariesMap } = useQuery({
+    queryKey: ['article-summaries-batch', visibleTitles.sort().join('|')],
+    queryFn: () => fetchArticleSummariesBatch(visibleTitles),
+    enabled: visibleTitles.length > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: false, // Don't refetch on focus
   });
 
   // Combine visited articles with their fetched data
@@ -50,9 +42,9 @@ export default function RecentArticlesList({
     return recentVisitedArticles.map((visited, index) => ({
       ...visited,
       // Only include article data for the first VISIBLE_ITEMS
-      article: index < VISIBLE_ITEMS ? (articleQueries[index]?.data ?? null) : null,
+      article: index < VISIBLE_ITEMS ? (summariesMap?.[visited.title] ?? null) : null,
     })) as ArticleWithData[];
-  }, [recentVisitedArticles, articleQueries]);
+  }, [recentVisitedArticles, summariesMap]);
 
   return (
     <BaseListWithHeader

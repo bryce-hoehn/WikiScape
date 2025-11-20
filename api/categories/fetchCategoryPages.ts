@@ -1,4 +1,5 @@
-import { actionAxiosInstance, restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { fetchArticleSummariesBatch } from '@/api/articles';
+import { actionAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 import { CategoryArticle, CategoryPagesResponse, CategorySubcategory } from '@/types/api';
 import { CategoryMember, ImageThumbnail, WikipediaActionApiParams, WikipediaPage, WikipediaQueryResponse } from '@/types/api/base';
 
@@ -104,24 +105,34 @@ export const fetchCategoryPages = async (categoryTitle: string): Promise<Categor
             }
           }
         } catch (error) {
-          // If batch fails, fall back to individual requests for this batch
+          // If batch fails, try using the batch summary function as fallback
           const batchMembers = articleMembers.filter((m) => batch.includes(m.title));
-          for (const member of batchMembers) {
-            try {
-              const summaryUrl = `/page/summary/${encodeURIComponent(member.title)}`;
-              const summaryResponse = await restAxiosInstance.get(summaryUrl, {
-                baseURL: WIKIPEDIA_API_CONFIG.REST_API_BASE_URL,
-              });
-              const summaryData = summaryResponse.data;
-
-              articles.push({
-                title: summaryData.title,
-                description: summaryData.description || summaryData.extract?.substring(0, 150) || '',
-                thumbnail: summaryData.thumbnail?.source || '',
-                pageid: summaryData.pageid || member.pageid,
-              });
-            } catch (fallbackError) {
-              // Return basic article info without description/thumbnail
+          const batchTitles = batchMembers.map((m) => m.title);
+          
+          try {
+            const fallbackSummaries = await fetchArticleSummariesBatch(batchTitles);
+            for (const member of batchMembers) {
+              const article = fallbackSummaries[member.title];
+              if (article) {
+                articles.push({
+                  title: article.title,
+                  description: article.extract?.substring(0, 150) || article.description || '',
+                  thumbnail: article.thumbnail?.source || '',
+                  pageid: article.pageid || member.pageid,
+                });
+              } else {
+                // Return basic article info without description/thumbnail
+                articles.push({
+                  title: member.title,
+                  description: '',
+                  thumbnail: '',
+                  pageid: member.pageid,
+                });
+              }
+            }
+          } catch (fallbackError) {
+            // If even fallback batch fails, return basic info for all
+            for (const member of batchMembers) {
               articles.push({
                 title: member.title,
                 description: '',

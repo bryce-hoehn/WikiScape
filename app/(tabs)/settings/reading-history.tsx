@@ -1,4 +1,4 @@
-import { fetchArticleSummary } from '@/api';
+import { fetchArticleSummariesBatch } from '@/api';
 import RecommendationCard from '@/components/article/RecommendationCard';
 import { LAYOUT } from '@/constants/layout';
 import { SPACING } from '@/constants/spacing';
@@ -6,7 +6,7 @@ import { TYPOGRAPHY } from '@/constants/typography';
 import { useBookmarkToggle, useReadingProgress, useVisitedArticles } from '@/hooks';
 import { RecommendationItem } from '@/types/components';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
-import { useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, useWindowDimensions, View } from 'react-native';
@@ -56,43 +56,41 @@ export default function ReadingHistoryScreen() {
   // itemWidth should be the available content width, not full screen width
   const itemWidth = availableWidth;
 
-  // Memoize queries array to prevent React 19 strict mode crashes
-  const queries = useMemo(
-    () =>
-      visitedArticles.map((visited) => ({
-        queryKey: ['article', visited.title] as const,
-        queryFn: async () => {
-          const response = await fetchArticleSummary(visited.title);
-          if (response.article) {
-            return {
-              title: response.article.title,
-              displaytitle: response.article.displaytitle,
-              description: response.article.description,
-              extract: response.article.extract,
-              thumbnail: response.article.thumbnail,
-              pageid: response.article.pageid,
-            } as RecommendationItem;
-          }
-          return null;
-        },
-        staleTime: 5 * 60 * 1000,
-        gcTime: 30 * 60 * 1000,
-        enabled: !!visited.title,
-      })),
+  // Batch fetch all article summaries at once (much faster)
+  const articleTitles = useMemo(
+    () => visitedArticles.map((visited) => visited.title),
     [visitedArticles]
   );
 
-  // Fetch article summaries for visited articles
-  const articleQueries = useQueries({
-    queries,
+  const { data: summariesMap, isLoading: isLoadingSummaries } = useQuery({
+    queryKey: ['article-summaries-batch', articleTitles.sort().join('|')],
+    queryFn: () => fetchArticleSummariesBatch(articleTitles),
+    enabled: articleTitles.length > 0,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
-  // Convert queries to RecommendationItems, filtering out nulls
+  // Convert summaries to RecommendationItems, preserving order of visitedArticles
   const articleItems = useMemo(() => {
-    return articleQueries
-      .map((query) => query.data)
-      .filter((item): item is RecommendationItem => item !== null && item !== undefined);
-  }, [articleQueries]);
+    if (!summariesMap) return [];
+    
+    return visitedArticles
+      .map((visited) => {
+        const article = summariesMap[visited.title];
+        if (article) {
+          return {
+            title: article.title,
+            displaytitle: article.displaytitle || article.title,
+            description: article.description,
+            extract: article.extract,
+            thumbnail: article.thumbnail,
+            pageid: article.pageid,
+          } as RecommendationItem;
+        }
+        return null;
+      })
+      .filter((item): item is RecommendationItem => item !== null);
+  }, [summariesMap, visitedArticles]);
 
   // Create pages of 10 items each
   const pages = useMemo(() => {

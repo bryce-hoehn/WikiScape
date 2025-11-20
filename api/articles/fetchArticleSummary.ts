@@ -1,6 +1,6 @@
-import { restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { actionAxiosInstance, restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 import { Article, ArticleResponse } from '@/types/api';
-import { isAxiosError } from '@/types/api/base';
+import { ImageThumbnail, WikipediaActionApiParams, WikipediaPage, WikipediaQueryResponse } from '@/types/api/base';
 import { normalizeWikipediaTitle } from '@/utils/titleNormalization';
 
 /**
@@ -48,4 +48,95 @@ export const fetchArticleSummary = async (title: string): Promise<ArticleRespons
 
     return { article: null, error: 'Failed to load article' };
   }
+};
+
+/**
+ * Batch fetch article summaries using Wikipedia Action API
+ * Much faster than individual REST API calls
+ * 
+ * @param titles - Array of article titles to fetch summaries for
+ * @returns Map of article title to Article object
+ */
+export const fetchArticleSummariesBatch = async (
+  titles: string[]
+): Promise<Record<string, Article | null>> => {
+  if (titles.length === 0) {
+    return {};
+  }
+
+  const results: Record<string, Article | null> = {};
+  
+  // Wikipedia API allows up to 50 titles per request
+  const BATCH_SIZE = 50;
+  const batches: string[][] = [];
+  
+  for (let i = 0; i < titles.length; i += BATCH_SIZE) {
+    batches.push(titles.slice(i, i + BATCH_SIZE));
+  }
+
+  for (const batch of batches) {
+    try {
+      const titlesParam = batch.map(t => normalizeWikipediaTitle(t)).join('|');
+      const batchParams: WikipediaActionApiParams = {
+        action: 'query',
+        prop: 'pageimages|extracts|info',
+        titles: titlesParam,
+        piprop: 'thumbnail',
+        pithumbsize: 300,
+        pilimit: 50,
+        exintro: true,
+        explaintext: true,
+        exlimit: 50,
+        inprop: 'url',
+        format: 'json',
+        origin: '*',
+      };
+
+      const batchResponse = await actionAxiosInstance.get<WikipediaQueryResponse>('', {
+        baseURL: WIKIPEDIA_API_CONFIG.BASE_URL,
+        params: batchParams,
+      });
+
+      const pages = batchResponse.data.query?.pages;
+      if (pages) {
+        for (const page of Object.values(pages)) {
+          const pageData = page as WikipediaPage & { 
+            extract?: string; 
+            thumbnail?: ImageThumbnail;
+            canonicalurl?: string;
+            fullurl?: string;
+          };
+          
+          // Match by title (case-insensitive)
+          const originalTitle = batch.find(
+            t => normalizeWikipediaTitle(t) === pageData.title || t === pageData.title
+          );
+          
+          if (originalTitle) {
+            results[originalTitle] = {
+              title: pageData.title,
+              displaytitle: pageData.title,
+              pageid: pageData.pageid,
+              extract: pageData.extract,
+              thumbnail: pageData.thumbnail,
+              description: pageData.extract?.substring(0, 200),
+              content_urls: pageData.canonicalurl || pageData.fullurl ? {
+                desktop: { page: pageData.canonicalurl || pageData.fullurl || '' },
+                mobile: { page: pageData.canonicalurl || pageData.fullurl || '' },
+              } : undefined,
+            };
+          }
+        }
+      }
+    } catch (error) {
+      // If batch fails, mark all titles in this batch as failed
+      for (const title of batch) {
+        if (!(title in results)) {
+          results[title] = null;
+        }
+      }
+    }
+  }
+
+  return results;
 };

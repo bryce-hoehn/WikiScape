@@ -1,6 +1,6 @@
-import { fetchArticleSummary } from '@/api';
+import { fetchArticleSummariesBatch } from '@/api';
 import { RecommendationItem } from '@/types/components';
-import { useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface TrendingArticle {
@@ -36,27 +36,14 @@ export default function useHotArticles(trendingArticles: TrendingArticle[]) {
     return allTrendingArticles.slice(0, endIndex).map((a) => a.title);
   }, [allTrendingArticles, currentPage]);
 
-  const articleQueries = useQueries({
-    queries: displayedTitles.map((title) => ({
-      queryKey: ['article', title],
-      queryFn: async () => {
-        const response = await fetchArticleSummary(title);
-        if (response.article) {
-          return {
-            title: response.article.title,
-            description: response.article.description,
-            extract: response.article.extract,
-            thumbnail: response.article.thumbnail,
-            pageid: response.article.pageid,
-          } as RecommendationItem;
-        }
-        return null;
-      },
-      staleTime: 10 * 60 * 1000, // 10 minutes
-      gcTime: 30 * 60 * 1000, // 30 minutes
-      enabled: !!title,
-      refetchOnWindowFocus: false, // Don't refetch on focus
-    })),
+  // Batch fetch all displayed article summaries at once (much faster)
+  const { data: summariesMap, isLoading: isLoadingSummaries } = useQuery({
+    queryKey: ['article-summaries-batch', displayedTitles.sort().join('|')],
+    queryFn: () => fetchArticleSummariesBatch(displayedTitles),
+    enabled: displayedTitles.length > 0,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: false, // Don't refetch on focus
   });
 
   const isArticleComplete = useCallback((article: RecommendationItem | null): boolean => {
@@ -69,10 +56,25 @@ export default function useHotArticles(trendingArticles: TrendingArticle[]) {
   }, []);
 
   const displayedArticles = useMemo(() => {
-    return articleQueries
-      .map((query) => query.data ?? null)
+    if (!summariesMap) return [];
+    
+    return displayedTitles
+      .map((title) => {
+        const article = summariesMap[title];
+        if (article) {
+          return {
+            title: article.title,
+            displaytitle: article.displaytitle || article.title,
+            description: article.description,
+            extract: article.extract,
+            thumbnail: article.thumbnail,
+            pageid: article.pageid,
+          } as RecommendationItem;
+        }
+        return null;
+      })
       .filter((article): article is RecommendationItem => isArticleComplete(article));
-  }, [articleQueries, isArticleComplete]);
+  }, [summariesMap, displayedTitles, isArticleComplete]);
 
   useEffect(() => {
     if (trendingArticles.length > 0 && allTrendingArticles.length === 0) {
@@ -118,7 +120,7 @@ export default function useHotArticles(trendingArticles: TrendingArticle[]) {
   }, []);
 
   const isLoadingInitial = allTrendingArticles.length > 0 && displayedArticles.length === 0;
-  const isLoading = articleQueries.some((query) => query.isLoading);
+  const isLoading = isLoadingSummaries;
 
   return {
     displayedArticles,
