@@ -10,11 +10,12 @@ import ArticleDrawerWrapper from '@/components/layout/ArticleDrawerWrapper';
 import ContentWithSidebar from '@/components/layout/ContentWithSidebar';
 import { SPACING } from '@/constants/spacing';
 import { TYPOGRAPHY } from '@/constants/typography';
-import { useArticle, useArticleLinks, useBookmarks, useVisitedArticles } from '@/hooks';
+import { useArticle, useArticleHtml, useArticleLinks, useBookmarks, useVisitedArticles } from '@/hooks';
 import { ImageThumbnail } from '@/types';
+import { extractAllImages } from '@/utils/articleParsing';
 import { shareArticle } from '@/utils/shareUtils';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, View } from 'react-native';
 import { ActivityIndicator, Appbar, ProgressBar, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,10 +42,24 @@ export default function ArticleScreen() {
   const totalHeaderHeight = HEADER_HEIGHT + insets.top;
   const animatedPaddingTop = useCollapsibleHeaderSpacing(scrollY, totalHeaderHeight);
   const { data: article, isLoading: isLoadingArticle } = useArticle(title as string);
+  const { data: articleHtml } = useArticleHtml(title as string);
   const { addVisitedArticle } = useVisitedArticles();
   const { hasArticleLinks, saveArticleLinks } = useArticleLinks();
   const { addBookmark, removeBookmark, isBookmarked } = useBookmarks();
   const { showSuccess } = useSnackbar();
+
+  // Extract all images from article HTML
+  const articleImages = useMemo(() => {
+    if (!articleHtml) return [];
+    return extractAllImages(articleHtml);
+  }, [articleHtml]);
+
+  // Find current image index when selectedImage changes
+  const currentImageIndex = useMemo(() => {
+    if (!selectedImage || articleImages.length === 0) return 0;
+    const index = articleImages.findIndex((img) => img.uri === selectedImage.uri);
+    return index >= 0 ? index : 0;
+  }, [selectedImage, articleImages]);
 
   // Fetch thumbnail when title changes - defer to avoid blocking navigation
   useEffect(() => {
@@ -325,6 +340,8 @@ export default function ArticleScreen() {
             visible={showImageModal}
             selectedImage={selectedImage}
             onClose={handleCloseImageModal}
+            images={articleImages.length > 0 ? articleImages : undefined}
+            initialIndex={currentImageIndex}
           />
         </Suspense>
       )}

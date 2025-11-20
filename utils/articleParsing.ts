@@ -562,3 +562,174 @@ export function splitIntoSections(html: string) {
     return sections;
   }
 }
+
+/**
+ * Extract all images from article HTML
+ * Returns an array of image objects with uri and alt text
+ * Uses the same logic as ImageRenderer for consistency
+ */
+export function extractAllImages(html: string): Array<{ uri: string; alt?: string }> {
+  if (!html || typeof html !== 'string') {
+    return [];
+  }
+
+  try {
+    const dom = parseHtml(html);
+    const body = selectOne('body', dom) || dom;
+    const imgElements = selectAll('img', body);
+
+    const images: Array<{ uri: string; alt?: string }> = [];
+
+    // Helper to extract best src from srcset (same logic as ImageRenderer)
+    const extractBestSrcFromSrcset = (srcset: string): string => {
+      try {
+        const candidates = String(srcset)
+          .split(',')
+          .map((c: string) => c.trim())
+          .filter(Boolean);
+        if (candidates.length === 0) return '';
+
+        let bestCandidate = candidates[candidates.length - 1];
+        let bestResolution = 0;
+
+        for (const candidate of candidates) {
+          const parts = candidate.trim().split(/\s+/);
+          if (parts.length < 2) continue;
+
+          const descriptor = parts[parts.length - 1];
+          const xMatch = descriptor.match(/(\d+)x/);
+          if (xMatch) {
+            const resolution = parseInt(xMatch[1], 10);
+            if (resolution > bestResolution) {
+              bestResolution = resolution;
+              bestCandidate = candidate;
+            }
+          }
+        }
+
+        return bestCandidate.split(/\s+/)[0];
+      } catch {
+        return '';
+      }
+    };
+
+    // Helper to check if image src is invalid
+    const isInvalidImageSrc = (src: string): boolean => {
+      if (!src) return true;
+      return (
+        src.startsWith('data:') ||
+        src.includes('placeholder') ||
+        src.includes('1x1') ||
+        src.includes('transparent')
+      );
+    };
+
+    // Helper to normalize protocol
+    const normalizeProtocol = (url: string): string => {
+      if (url.startsWith('//')) {
+        return 'https:' + url;
+      }
+      return url;
+    };
+
+    // Helper to resolve relative paths
+    const resolveRelativePath = (url: string): string => {
+      if (url.startsWith('./')) {
+        return `https://en.wikipedia.org/wiki/${url.slice(2)}`;
+      }
+      if (url.startsWith('/') && !url.startsWith('//')) {
+        return `https://en.wikipedia.org${url}`;
+      }
+      return url;
+    };
+
+    // Helper to convert Wiki file page to Commons URL
+    const convertWikiFilePageToCommons = (url: string): string | null => {
+      const fileMatch = url.match(/\/wiki\/(?:File|Image):(.+)$/i);
+      if (!fileMatch) return null;
+
+      const fileName = fileMatch[1].split('#')[0].split('?')[0];
+      if (!fileName) return null;
+
+      return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}`;
+    };
+
+    // Helper to resolve image URL fully (same logic as ImageRenderer)
+    const resolveImageUrlFull = (raw: string): string => {
+      if (!raw) return '';
+
+      let resolvedUrl = normalizeProtocol(raw);
+      resolvedUrl = resolveRelativePath(resolvedUrl);
+
+      const commonsUrl = convertWikiFilePageToCommons(resolvedUrl);
+      if (commonsUrl) return commonsUrl;
+
+      // Keep thumbnails as-is - they're already optimized
+      if (resolvedUrl.includes('upload.wikimedia.org')) {
+        return normalizeProtocol(resolvedUrl);
+      }
+
+      return resolvedUrl;
+    };
+
+    for (const imgNode of imgElements) {
+      // Type guard: ensure it's an Element with attribs
+      if (!('attribs' in imgNode) || !('name' in imgNode) || !imgNode.attribs) continue;
+      const imgElement = imgNode as unknown as Element;
+      const attrs = imgElement.attribs;
+
+      // Get raw source (same logic as ImageRenderer)
+      const getRawSrcFull = (): string => {
+        const directSrc = attrs.src || attrs['data-src'] || attrs['data-image'] || '';
+        if (directSrc && !isInvalidImageSrc(directSrc)) {
+          return directSrc;
+        }
+
+        if (attrs.srcset) {
+          const srcsetSrc = extractBestSrcFromSrcset(attrs.srcset);
+          if (srcsetSrc && !isInvalidImageSrc(srcsetSrc)) {
+            return srcsetSrc;
+          }
+        }
+
+        return '';
+      };
+
+      const rawSrc = getRawSrcFull();
+      if (!rawSrc || isInvalidImageSrc(rawSrc)) {
+        continue;
+      }
+
+      // Resolve URL fully (same as ImageRenderer)
+      const imageUrl = resolveImageUrlFull(rawSrc);
+
+      // Skip if still invalid
+      if (
+        !imageUrl ||
+        (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://'))
+      ) {
+        continue;
+      }
+
+      // Extract parent attributes for alt text (same as ImageRenderer)
+      const parent = imgElement.parent;
+      const parentAttrs =
+        parent && 'attribs' in parent && parent.type === 'tag' ? parent.attribs : undefined;
+
+      // Extract alt text using the fully resolved URL (same as ImageRenderer)
+      const alt = extractAltText(attrs, parentAttrs, imageUrl);
+
+      // Add to array if not already present (avoid duplicates)
+      if (!images.some((img) => img.uri === imageUrl)) {
+        images.push({ uri: imageUrl, alt });
+      }
+    }
+
+    return images;
+  } catch (err) {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.error('Error extracting images:', err);
+    }
+    return [];
+  }
+}
