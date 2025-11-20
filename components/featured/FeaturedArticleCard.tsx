@@ -8,7 +8,6 @@ import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { Card, IconButton, Text, useTheme } from 'react-native-paper';
-import ImageDialog from '../article/ImageDialog';
 import HtmlRenderer from '../common/HtmlRenderer';
 import ResponsiveImage from '../common/ResponsiveImage';
 
@@ -20,8 +19,6 @@ export default function FeaturedArticleCard({ variant = 'default' }: FeaturedArt
   const { featuredContent } = useFeaturedContent();
   const theme = useTheme();
   const article = featuredContent?.tfa;
-  const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{ uri: string; alt?: string } | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const { reducedMotion } = useReducedMotion();
 
@@ -36,10 +33,6 @@ export default function FeaturedArticleCard({ variant = 'default' }: FeaturedArt
   const imageHeight = isCompact ? 120 : 240;
   const contentHeight = isCompact ? 290 : 170;
 
-  const handleImagePress = (image: { uri: string; alt?: string }) => {
-    setSelectedImage(image);
-    setImageModalVisible(true);
-  };
 
   // Web-specific: Hover handlers with prefetching
   const queryClient = useQueryClient();
@@ -113,7 +106,6 @@ export default function FeaturedArticleCard({ variant = 'default' }: FeaturedArt
               height: imageHeight,
             }}
             alt={`Thumbnail for ${article.titles?.normalized || article.title || ''}`}
-            onPress={handleImagePress}
           />
         ) : (
           <View
@@ -207,15 +199,6 @@ export default function FeaturedArticleCard({ variant = 'default' }: FeaturedArt
           </Text>
         ) : null}
       </Card.Content>
-
-      <ImageDialog
-        visible={imageModalVisible}
-        selectedImage={selectedImage}
-        onClose={() => {
-          setImageModalVisible(false);
-          setSelectedImage(null);
-        }}
-      />
     </Card>
   );
 }

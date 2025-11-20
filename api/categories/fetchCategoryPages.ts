@@ -1,6 +1,6 @@
 import { fetchArticleSummary } from '@/api/articles';
 import { fetchDescription } from '@/api/articles/fetchDescription';
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { actionAxiosInstance, fetchConcurrently, restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 import { CategoryArticle, CategoryPagesResponse, CategorySubcategory } from '@/types/api';
 import { CategoryMember, WikipediaActionApiParams, WikipediaQueryResponse } from '@/types/api/base';
 
@@ -28,7 +28,7 @@ export const fetchCategoryPages = async (categoryTitle: string): Promise<Categor
       origin: '*',
     };
 
-    const response = await axiosInstance.get<WikipediaQueryResponse>('', {
+    const response = await actionAxiosInstance.get<WikipediaQueryResponse>('', {
       baseURL: WIKIPEDIA_API_CONFIG.BASE_URL,
       params,
     });
@@ -40,7 +40,7 @@ export const fetchCategoryPages = async (categoryTitle: string): Promise<Categor
 
     const articles: CategoryArticle[] = [];
     const subcategories: CategorySubcategory[] = [];
-    const articlePromises: Promise<void>[] = [];
+    const articleMembers: CategoryMember[] = [];
 
     // Separate articles and subcategories
     for (const member of data.query.categorymembers as CategoryMember[]) {
@@ -51,53 +51,57 @@ export const fetchCategoryPages = async (categoryTitle: string): Promise<Categor
           description: '',
         });
       } else if (member.ns === 0) {
-        // Main namespace (articles)
-        // Process articles in parallel for better performance
-        const articlePromise = (async () => {
-          try {
-            // Use REST API summary endpoint for thumbnails and descriptions
-            const summaryUrl = `/page/summary/${encodeURIComponent(member.title)}`;
-            const summaryResponse = await axiosInstance.get(summaryUrl, {
-              baseURL: WIKIPEDIA_API_CONFIG.REST_API_BASE_URL,
-            });
-            const summaryData = summaryResponse.data;
-
-            articles.push({
-              title: summaryData.title,
-              description: summaryData.description || summaryData.extract?.substring(0, 150) || '',
-              thumbnail: summaryData.thumbnail?.source || '',
-              pageid: summaryData.pageid || member.pageid,
-            });
-          } catch (error) {
-            // Fallback to original methods
-            try {
-              const articleResponse = await fetchArticleSummary(member.title);
-              const description = await fetchDescription(member.title);
-
-              articles.push({
-                title: member.title,
-                description: description || articleResponse?.article?.description || '',
-                thumbnail: articleResponse?.article?.thumbnail?.source || '',
-                pageid: member.pageid,
-              });
-            } catch (fallbackError) {
-              // Add basic article info without description/thumbnail
-              articles.push({
-                title: member.title,
-                description: '',
-                thumbnail: '',
-                pageid: member.pageid,
-              });
-            }
-          }
-        })();
-
-        articlePromises.push(articlePromise);
+        // Main namespace (articles) - collect for parallel processing
+        articleMembers.push(member);
       }
     }
 
-    // Wait for all article details to be fetched
-    await Promise.allSettled(articlePromises);
+    // Process articles in parallel with concurrency limit (up to 5 concurrent)
+    const articleResults = await fetchConcurrently(
+      articleMembers,
+      async (member: CategoryMember): Promise<CategoryArticle | null> => {
+        try {
+          // Use REST API summary endpoint for thumbnails and descriptions
+          const summaryUrl = `/page/summary/${encodeURIComponent(member.title)}`;
+          const summaryResponse = await restAxiosInstance.get(summaryUrl, {
+            baseURL: WIKIPEDIA_API_CONFIG.REST_API_BASE_URL,
+          });
+          const summaryData = summaryResponse.data;
+
+          return {
+            title: summaryData.title,
+            description: summaryData.description || summaryData.extract?.substring(0, 150) || '',
+            thumbnail: summaryData.thumbnail?.source || '',
+            pageid: summaryData.pageid || member.pageid,
+          };
+        } catch (error) {
+          // Fallback to original methods
+          try {
+            const articleResponse = await fetchArticleSummary(member.title);
+            const description = await fetchDescription(member.title);
+
+            return {
+              title: member.title,
+              description: description || articleResponse?.article?.description || '',
+              thumbnail: articleResponse?.article?.thumbnail?.source || '',
+              pageid: member.pageid,
+            };
+          } catch (fallbackError) {
+            // Return basic article info without description/thumbnail
+            return {
+              title: member.title,
+              description: '',
+              thumbnail: '',
+              pageid: member.pageid,
+            };
+          }
+        }
+      },
+      5 // Max 5 concurrent requests (matches REST API limit)
+    );
+
+    // Filter out null results and add to articles array
+    articles.push(...articleResults.filter((article): article is CategoryArticle => article !== null));
 
     return { articles, subcategories };
   } catch (error: unknown) {

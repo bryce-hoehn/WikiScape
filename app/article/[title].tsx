@@ -1,3 +1,4 @@
+import { fetchArticleBacklinks, fetchArticleLinks } from '@/api';
 import { fetchArticleThumbnail } from '@/api/articles/fetchArticleThumbnail';
 import { SearchOverlay } from '@/components';
 import Article from '@/components/article/Article';
@@ -9,7 +10,7 @@ import ArticleDrawerWrapper from '@/components/layout/ArticleDrawerWrapper';
 import ContentWithSidebar from '@/components/layout/ContentWithSidebar';
 import { SPACING } from '@/constants/spacing';
 import { TYPOGRAPHY } from '@/constants/typography';
-import { useArticle, useBookmarks, useVisitedArticles } from '@/hooks';
+import { useArticle, useArticleLinks, useBookmarks, useVisitedArticles } from '@/hooks';
 import { ImageThumbnail } from '@/types';
 import { shareArticle } from '@/utils/shareUtils';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -35,11 +36,13 @@ export default function ArticleScreen() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
   const hasTrackedVisit = useRef(false);
+  const hasFetchedLinks = useRef(false);
   const insets = useSafeAreaInsets();
   const totalHeaderHeight = HEADER_HEIGHT + insets.top;
   const animatedPaddingTop = useCollapsibleHeaderSpacing(scrollY, totalHeaderHeight);
   const { data: article, isLoading: isLoadingArticle } = useArticle(title as string);
   const { addVisitedArticle } = useVisitedArticles();
+  const { hasArticleLinks, saveArticleLinks } = useArticleLinks();
   const { addBookmark, removeBookmark, isBookmarked } = useBookmarks();
   const { showSuccess } = useSnackbar();
 
@@ -96,7 +99,57 @@ export default function ArticleScreen() {
   // Reset tracking when title changes
   useEffect(() => {
     hasTrackedVisit.current = false;
+    hasFetchedLinks.current = false;
   }, [title]);
+
+  // Fetch article links in background after article is loaded and tracked
+  // Priority: 1. Render article, 2. Track visit, 3. Fetch links
+  useEffect(() => {
+    if (article && title && hasTrackedVisit.current && !hasFetchedLinks.current) {
+      // Check if article already exists in storage (even if it has no links)
+      if (hasArticleLinks(title)) {
+        // Article already cached, no need to fetch
+        hasFetchedLinks.current = true;
+        return;
+      }
+
+      // Mark as fetching to prevent duplicate fetches
+      hasFetchedLinks.current = true;
+
+      // Defer link fetching until after user has started reading
+      const fetchLinks = async () => {
+        try {
+          // Fetch both backlinks and forward links in parallel
+          const [backlinks, forwardLinks] = await Promise.all([
+            fetchArticleBacklinks(title),
+            fetchArticleLinks(title),
+          ]);
+
+          // Combine both arrays, removing duplicates
+          const allLinks = Array.from(new Set([...backlinks, ...forwardLinks]));
+
+          // Save to AsyncStorage (even if empty, to avoid refetching articles with no links)
+          await saveArticleLinks(title, allLinks);
+        } catch (error) {
+          // Silently handle fetch failures - don't block article viewing
+          // Reset flag so we can retry if needed
+          hasFetchedLinks.current = false;
+          if (typeof __DEV__ !== 'undefined' && __DEV__) {
+            console.error(`Failed to fetch links for ${title}:`, error);
+          }
+        }
+      };
+
+      // Use requestIdleCallback on web, setTimeout on native
+      // Longer timeout to ensure user has started reading
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(fetchLinks, { timeout: 5000 });
+      } else {
+        // Defer to allow user to start reading first
+        setTimeout(fetchLinks, 2000);
+      }
+    }
+  }, [article, title, hasArticleLinks, saveArticleLinks]);
 
   const handleBackPress = () => {
     router.back();
@@ -188,7 +241,7 @@ export default function ArticleScreen() {
                           flex: 1,
                           marginLeft: SPACING.sm,
                           fontWeight: '500', // MD3: Medium weight (500) for app bar titles
-                          fontSize: 22, // 22sp per MD3 specification
+                          fontSize: TYPOGRAPHY.appBarTitle, // 22sp per MD3 specification
                         }}
                         numberOfLines={1}
                         ellipsizeMode="tail"

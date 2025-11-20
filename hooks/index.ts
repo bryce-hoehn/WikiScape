@@ -7,8 +7,8 @@
 export { default as useArticle } from './articles/useArticle';
 export { default as useArticleHtml } from './articles/useArticleHtml';
 export { default as useArticleThumbnail } from './articles/useArticleThumbnail';
-export { default as useBacklinkRecommendations } from './articles/useBacklinkRecommendations';
 export { default as useCategoryMembers } from './articles/useCategoryMembers';
+export { default as useBacklinkRecommendations } from './articles/useRecommendations';
 
 // Search hooks
 export { default as useSearchSuggestions } from './search/useSearchSuggestions';
@@ -20,6 +20,7 @@ export { default as useTrendingArticles } from './content/useTrendingArticles';
 // Storage hooks
 export { useBookmarks } from '../context/BookmarksContext';
 export { default as useAccordionBehavior } from './storage/useAccordionBehavior';
+export { default as useArticleLinks } from './storage/useArticleLinks';
 export { default as useFontFamily } from './storage/useFontFamily';
 export { default as useFontSize } from './storage/useFontSize';
 export { default as useLineHeight } from './storage/useLineHeight';

@@ -1,7 +1,7 @@
 import { SPACING } from '@/constants/spacing';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Platform, View, useWindowDimensions } from 'react-native';
 import { Portal, Text, useTheme } from 'react-native-paper';
 import { RecommendationItem } from '../../types/components';
@@ -31,6 +31,10 @@ export default function CarouselItemsBottomSheet({
   const { width, height } = useWindowDimensions();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const scrollViewRef = useRef<any>(null);
+  const firstCardRef = useRef<View>(null);
+  const lastCardRef = useRef<View>(null);
+  const [firstCardCenter, setFirstCardCenter] = useState<number | null>(null);
+  const [lastCardCenter, setLastCardCenter] = useState<number | null>(null);
   
   // Snap points for the bottom sheet (50% initial, 90% expanded)
   const snapPoints = useMemo(() => ['50%', '90%'], []);
@@ -184,45 +188,115 @@ export default function CarouselItemsBottomSheet({
           </View>
 
           {/* Content */}
-          {items.map((item, index) => {
-            const isOnThisDay = cardType === 'on-this-day';
-            const year = isOnThisDay && 'year' in item ? item.year : undefined;
-            const showYearHeader = isOnThisDay && year && (index === 0 || items[index - 1]?.year !== year);
-
-            const handleYearPress = () => {
-              if (year) {
-                router.push(`/article/${encodeURIComponent(year)}`);
-              }
-            };
-
-            return (
-              <React.Fragment key={keyExtractor(item, index)}>
-                {showYearHeader && (
-                  <View
-                    style={{
-                      marginTop: index === 0 ? 0 : SPACING.lg,
-                      marginBottom: SPACING.md,
-                      paddingHorizontal: SPACING.xs,
-                    }}
-                  >
-                    <Text
-                      variant="titleLarge"
-                      onPress={handleYearPress}
+          {cardType === 'on-this-day' ? (
+            (() => {
+              const timelineLeft = SPACING.md; // Line position from container left
+              const containerPadding = SPACING.base + 20; // Card container padding
+              const dotRadius = 6; // Dot radius (12px / 2)
+              const dotLeft = -(containerPadding - timelineLeft + dotRadius); // Position dot center on line
+              
+              return (
+                <View style={{ position: 'relative', paddingLeft: containerPadding }}>
+                  {/* Vertical timeline line - positioned between first and last dots */}
+                  {firstCardCenter !== null && lastCardCenter !== null && (
+                    <View
                       style={{
-                        fontWeight: 'bold',
-                        color: theme.colors.primary,
+                        position: 'absolute',
+                        left: timelineLeft,
+                        top: firstCardCenter,
+                        height: lastCardCenter - firstCardCenter,
+                        width: 1,
+                        backgroundColor: theme.colors.outlineVariant,
+                        zIndex: 0, // Behind dots
                       }}
-                    >
-                      {year}
-                    </Text>
-                  </View>
-                )}
-                <View style={{ marginBottom: SPACING.lg }}>
-                  {renderItem({ item, index })}
+                    />
+                  )}
+                  
+                  {/* Cards with timeline dots */}
+                  {items.map((item, index) => {
+                    const year = 'year' in item ? item.year : undefined;
+                    const showYearHeader = year && (index === 0 || items[index - 1]?.year !== year);
+                    const isFirst = index === 0;
+                    const isLast = index === items.length - 1;
+
+                    const handleYearPress = () => {
+                      if (year) {
+                        router.push(`/article/${encodeURIComponent(year)}`);
+                      }
+                    };
+
+                    const handleCardLayout = (event: any) => {
+                      const { y, height } = event.nativeEvent.layout;
+                      const centerY = y + height / 2;
+                      
+                      if (isFirst) {
+                        setFirstCardCenter(centerY);
+                      }
+                      if (isLast) {
+                        setLastCardCenter(centerY);
+                      }
+                    };
+
+                    return (
+                      <React.Fragment key={keyExtractor(item, index)}>
+                        {showYearHeader && (
+                          <View
+                            style={{
+                              marginTop: index === 0 ? 0 : SPACING.lg,
+                              marginBottom: SPACING.md,
+                              paddingLeft: SPACING.base,
+                            }}
+                          >
+                            <Text
+                              variant="titleLarge"
+                              onPress={handleYearPress}
+                              style={{
+                                fontWeight: 'bold',
+                                color: theme.colors.primary,
+                              }}
+                            >
+                              {year}
+                            </Text>
+                          </View>
+                        )}
+                        <View 
+                          ref={isFirst ? firstCardRef : isLast ? lastCardRef : null}
+                          onLayout={handleCardLayout}
+                          style={{ position: 'relative', marginBottom: SPACING.lg }}
+                        >
+                          {/* Timeline dot - centered on the line */}
+                          <View
+                            style={{
+                              position: 'absolute',
+                              left: dotLeft,
+                              top: '50%',
+                              width: 12,
+                              height: 12,
+                              borderRadius: 6,
+                              backgroundColor: theme.colors.primary,
+                              borderWidth: 2,
+                              borderColor: theme.colors.surface,
+                              zIndex: 2, // Above line
+                              transform: [{ translateY: -6 }],
+                            }}
+                          />
+                          {renderItem({ item, index })}
+                        </View>
+                      </React.Fragment>
+                    );
+                  })}
                 </View>
-              </React.Fragment>
-            );
-          })}
+              );
+            })()
+          ) : (
+            items.map((item, index) => {
+              return (
+                <React.Fragment key={keyExtractor(item, index)}>
+                  {renderItem({ item, index })}
+                </React.Fragment>
+              );
+            })
+          )}
         </BottomSheetScrollView>
       </BottomSheet>
     </Portal>

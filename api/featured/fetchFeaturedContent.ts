@@ -1,4 +1,4 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 import { FeaturedContent, FeaturedContentResponse } from '@/types/api/featured';
 
 /**
@@ -32,10 +32,8 @@ export const fetchFeaturedContent = async (): Promise<FeaturedContentResponse> =
     const url = `/feed/v1/wikipedia/en/featured/${formattedDate}`;
 
     try {
-      const response = await axiosInstance.get(url, {
+      const response = await restAxiosInstance.get(url, {
         baseURL: WIKIPEDIA_API_CONFIG.WIKIMEDIA_BASE_URL,
-        // Uses centralized 8s timeout from axiosInstance
-        // origin=* is automatically added by axiosInstance interceptor
       });
 
       // Normalize the response: convert null arrays to empty arrays

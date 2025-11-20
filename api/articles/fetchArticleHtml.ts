@@ -1,42 +1,12 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
-import { Article } from '@/types/api';
+import { restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 import { isAxiosError } from '@/types/api/base';
 import { normalizeWikipediaTitle } from '@/utils/titleNormalization';
 
 /**
- * Resolve redirects by fetching the article summary, which automatically resolves redirects
- * Returns the canonical title if found, or the original title if no redirect exists
- */
-async function resolveRedirect(title: string): Promise<string> {
-  try {
-    const cleanTitle = normalizeWikipediaTitle(title);
-
-    // Use REST API summary endpoint which automatically resolves redirects
-    const response = await axiosInstance.get<Article>(
-      `/page/summary/${encodeURIComponent(cleanTitle)}`,
-      {
-        baseURL: WIKIPEDIA_API_CONFIG.REST_API_BASE_URL,
-      }
-    );
-
-    // REST API returns titles with spaces, but Core API expects underscores
-    if (response.data?.title) {
-      return normalizeWikipediaTitle(response.data.title);
-    }
-
-    // If no title in response, return original
-    return cleanTitle;
-  } catch (error) {
-    // If redirect resolution fails, return original title and let HTML fetch handle the error
-    return normalizeWikipediaTitle(title);
-  }
-}
-
-/**
- * Fetch full HTML content for a Wikipedia article using the Wikimedia Core API
+ * Fetch full HTML content for a Wikipedia article using the REST API
  *
  * Used for article detail pages where complete HTML with images is needed.
- * Automatically handles redirects by resolving them first to get the canonical title.
+ * The REST API automatically handles redirects, so no redirect resolution is needed.
  *
  * @param title - The Wikipedia article title (e.g., "Albert Einstein")
  * @returns Promise resolving to the HTML string, or null if the article cannot be fetched
@@ -53,34 +23,11 @@ export const fetchArticleHtml = async (title: string): Promise<string | null> =>
   try {
     const cleanTitle = normalizeWikipediaTitle(title);
 
-    // Resolve redirects and fetch HTML in parallel for better performance
-    // Start both requests simultaneously
-    const [resolvedTitle, directHtmlResponse] = await Promise.allSettled([
-      resolveRedirect(cleanTitle),
-      axiosInstance.get<string>(`/page/${encodeURIComponent(cleanTitle)}/html`, {
-        baseURL: WIKIPEDIA_API_CONFIG.CORE_API_BASE_URL,
-        headers: {
-          Accept: 'text/html',
-        },
-      }),
-    ]);
-
-    // If direct fetch succeeded, use it (avoids redirect resolution delay)
-    if (directHtmlResponse.status === 'fulfilled' && directHtmlResponse.value.status === 200) {
-      return directHtmlResponse.value.data;
-    }
-
-    // Otherwise, use resolved title (handles redirects)
-    const finalTitle =
-      resolvedTitle.status === 'fulfilled'
-        ? normalizeWikipediaTitle(resolvedTitle.value)
-        : cleanTitle;
-
-    // Fetch with resolved title
-    const response = await axiosInstance.get<string>(
-      `/page/${encodeURIComponent(finalTitle)}/html`,
+    // REST API automatically handles redirects, so we only need a single request
+    const response = await restAxiosInstance.get<string>(
+      `/page/html/${encodeURIComponent(cleanTitle)}`,
       {
-        baseURL: WIKIPEDIA_API_CONFIG.CORE_API_BASE_URL,
+        baseURL: WIKIPEDIA_API_CONFIG.REST_API_BASE_URL,
         headers: {
           Accept: 'text/html',
         },

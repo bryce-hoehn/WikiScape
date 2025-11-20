@@ -36,23 +36,14 @@ export default function FeaturedCarousel({
 
   const cardWidth = containerWidth;
 
-  const scrollToIndex = (index: number, animated: boolean = true) => {
-    if (carouselRef.current && items.length > 0) {
-      const normalizedIndex = ((index % items.length) + items.length) % items.length;
-      carouselRef.current.scrollTo({ index: normalizedIndex, animated });
-    }
-  };
-
   const handlePrevious = () => {
-    if (items.length === 0) return;
-    const newIndex = currentIndex === 0 ? items.length - 1 : currentIndex - 1;
-    scrollToIndex(newIndex);
+    if (items.length === 0 || !carouselRef.current) return;
+    carouselRef.current.prev({ animated: true });
   };
 
   const handleNext = () => {
-    if (items.length === 0) return;
-    const newIndex = currentIndex === items.length - 1 ? 0 : currentIndex + 1;
-    scrollToIndex(newIndex);
+    if (items.length === 0 || !carouselRef.current) return;
+    carouselRef.current.next({ animated: true });
   };
 
   // Select the appropriate card component based on cardType

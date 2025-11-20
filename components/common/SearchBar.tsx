@@ -1,6 +1,6 @@
 // Native date formatting - no external dependency needed
-import { HEIGHTS } from '@/constants/spacing';
 import { MOTION } from '@/constants/motion';
+import { SPACING } from '@/constants/spacing';
 import { router } from 'expo-router';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
@@ -196,9 +196,9 @@ export default function SearchBar({
             backgroundColor,
             // MD3: corner.medium (12dp) for search bars - per https://m3.material.io/components/search/specs
             borderRadius: headerStyle ? 0 : theme.roundness * 3,
-            // MD3: Ensure 56dp height for search bars
-            minHeight: HEIGHTS.searchBar,
-            height: HEIGHTS.searchBar,
+            // MD3: Ensure 56dp height for search bars - per https://m3.material.io/components/search/specs
+            minHeight: 56,
+            height: 56,
           }}
           inputStyle={{
             // fontSize removed - using variant default
@@ -380,7 +380,7 @@ const createStyles = (theme: any) => {
       }),
     },
     dropdownItem: {
-      paddingHorizontal: 16,
+      paddingHorizontal: SPACING.base,
       paddingVertical: spacing.md,
       borderBottomWidth: StyleSheet.hairlineWidth,
       // borderBottomColor will be set dynamically in component to use theme colors

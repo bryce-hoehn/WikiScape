@@ -86,15 +86,12 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "57646a65-2954-4207-a890-a5358e8043bc"
+        "projectId": "544f5bef-88e1-4990-96da-18d922ed21df"
       }
     },
     "owner": "17hoehbr",
     "runtimeVersion": {
       "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/57646a65-2954-4207-a890-a5358e8043bc"
     },
     "sdkVersion": "54.0.0"
   },

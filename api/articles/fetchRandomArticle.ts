@@ -1,4 +1,4 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 import { ArticleResponse } from '@/types/api/articles';
 
 export const fetchRandomArticle = async (maxRetries = 3): Promise<ArticleResponse> => {
@@ -6,7 +6,7 @@ export const fetchRandomArticle = async (maxRetries = 3): Promise<ArticleRespons
     try {
       // Use Wikipedia REST API to get a random page summary
       const url = '/page/random/summary';
-      const response = await axiosInstance.get(url, {
+      const response = await restAxiosInstance.get(url, {
         baseURL: WIKIPEDIA_API_CONFIG.REST_API_BASE_URL,
         validateStatus: (status) => status === 200, // Only accept 200 OK
         // Uses centralized 8s timeout from axiosInstance

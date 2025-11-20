@@ -14,7 +14,6 @@ import { RecommendationCardProps } from '../../types/components';
 import { hapticLight, hapticMedium } from '../../utils/haptics';
 import { copyArticleUrl, shareArticle } from '../../utils/shareUtils';
 import ResponsiveImage from '../common/ResponsiveImage';
-import ImageDialog from './ImageDialog';
 
 const RecommendationCard = React.memo(function RecommendationCard({
   item,
@@ -31,7 +30,6 @@ const RecommendationCard = React.memo(function RecommendationCard({
   const queryClient = useQueryClient();
   const [isPressed, setIsPressed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [imageModalVisible, setImageModalVisible] = useState(false);
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
   const scaleAnim = useRef(new Animated.Value(reducedMotion ? 1 : 0.95)).current;
@@ -269,9 +267,6 @@ const RecommendationCard = React.memo(function RecommendationCard({
                   }}
                   alt={`Thumbnail for ${item.title}`}
                   skipOptimization={true} // Use default thumbnail without optimization
-                  onPress={() => {
-                    setImageModalVisible(true);
-                  }}
                 />
               ) : (
                 <View
@@ -433,17 +428,6 @@ const RecommendationCard = React.memo(function RecommendationCard({
           </View>
         </Card>
       </Pressable>
-
-      {item.thumbnail && (
-        <ImageDialog
-          visible={imageModalVisible}
-          selectedImage={{
-            uri: item.thumbnail.source,
-            alt: item.title,
-          }}
-          onClose={() => setImageModalVisible(false)}
-        />
-      )}
 
       {/* Long-press Context Menu */}
       <Menu

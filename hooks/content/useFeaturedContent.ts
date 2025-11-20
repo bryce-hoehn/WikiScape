@@ -1,72 +1,53 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useMemo } from 'react';
 import { fetchFeaturedContent } from '../../api';
 
 /**
- * useFeaturedContent with in-memory fallback cache and background refresh.
- *
+ * useFeaturedContent - Fetches featured content with fallback to cache
+ * 
  * Behavior:
- * - Keeps an in-memory last-known-good featured content value as a fallback when network fetch fails.
- * - Performs background refresh on an interval (default 15 minutes).
- * - Uses react-query for caching, retries and stale-time semantics.
+ * 1. Try to fetch today's featured content
+ * 2. Fallback to cached data if fetch fails
+ * 3. Periodically refreshes to check for new data
  */
 
-// Simple in-memory cache (module-scoped)
-let lastFeaturedCache: { data: any; fetchedAt: number } | null = null;
+// Simple in-memory cache
+let cachedData: any | null = null;
 
 export default function useFeaturedContent() {
-  const queryKey = ['featured-content'] as const;
+  const todayDateKey = useMemo(() => {
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(now.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
 
-  const queryFn = async () => {
-    try {
-      const content = await fetchFeaturedContent();
-      try {
-        // store last successful fetch in module cache
-        lastFeaturedCache = { data: content, fetchedAt: Date.now() };
-      } catch {
-        // ignore cache errors
-      }
-      return content;
-    } catch (error) {
-      // If network fails, return in-memory cache if available so UI still shows something.
-      if (lastFeaturedCache) {
-        return lastFeaturedCache.data;
-      }
+  const queryKey = ['featured-content', todayDateKey] as const;
 
-      // Otherwise rethrow so react-query can surface error states and retries
-      throw error;
-    }
-  };
-
-  const queryResult = useQuery({
+  return useQuery({
     queryKey,
-    queryFn,
-    // Featured content updates rarely; keep it fresh but allow background refresh
-    staleTime: 60 * 60 * 1000, // 1 hour
-    gcTime: 2 * 60 * 60 * 1000, // 2 hours (replaced deprecated cacheTime)
-    // react-query retry/backoff - still keep in addition to axios retries
-    retry: 3,
-    retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    // Background refresh every 15 minutes to keep cache fresh without blocking UI
-    refetchInterval: 15 * 60 * 1000,
-    refetchIntervalInBackground: true,
+    queryFn: async () => {
+      try {
+        const content = await fetchFeaturedContent();
+        cachedData = content;
+        return content;
+      } catch (error) {
+        // If fetch fails, return cached data if available
+        if (cachedData) {
+          return cachedData;
+        }
+        // Otherwise rethrow so react-query can surface error states
+        throw error;
+      }
+    },
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours - data updates daily
+    gcTime: 2 * 24 * 60 * 60 * 1000, // 2 days
+    refetchInterval: 15 * 60 * 1000, // Refresh every 15 minutes
+    refetchIntervalInBackground: true, // Continue refreshing in background
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false, // Don't refetch on reconnect
-    // Provide initialData from in-memory cache if present (fast UI)
-    initialData: () => lastFeaturedCache?.data ?? undefined,
-  } as any);
-
-  // When query successfully fetches, ensure module cache is populated
-  // Move to useEffect to prevent side effects during render (React 19 strict mode requirement)
-  useEffect(() => {
-  if (!queryResult.isFetching && queryResult.data) {
-    try {
-      lastFeaturedCache = { data: queryResult.data, fetchedAt: Date.now() };
-    } catch {
-      // ignore
-    }
-  }
-  }, [queryResult.isFetching, queryResult.data]);
-
-  return queryResult;
+    refetchOnReconnect: false,
+    // Provide cached data as initial data if available
+    initialData: cachedData ? () => cachedData : undefined,
+  });
 }

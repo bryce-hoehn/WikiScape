@@ -1,11 +1,11 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 import type { ImageThumbnail } from '@/types/api/base';
 
 export const fetchArticleThumbnail = async (title: string): Promise<ImageThumbnail | null> => {
   try {
     // Use Wikipedia REST API to fetch page summary including thumbnail
     const url = `/page/summary/${encodeURIComponent(title)}`;
-    const response = await axiosInstance.get(url, {
+    const response = await restAxiosInstance.get(url, {
       baseURL: WIKIPEDIA_API_CONFIG.REST_API_BASE_URL,
     });
 

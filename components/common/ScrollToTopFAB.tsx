@@ -10,9 +10,10 @@ interface ScrollToTopFABProps {
   scrollRef: React.RefObject<any>;
   visible?: boolean;
   hasBottomTabBar?: boolean; // Whether the page has a bottom tab bar
+  containerPositioned?: boolean; // Whether the FAB is positioned by its container (disables internal positioning)
 }
 
-export default function ScrollToTopFAB({ scrollRef, visible = true, hasBottomTabBar = true }: ScrollToTopFABProps) {
+export default function ScrollToTopFAB({ scrollRef, visible = true, hasBottomTabBar = true, containerPositioned = false }: ScrollToTopFABProps) {
   const theme = useTheme();
   const { reducedMotion } = useReducedMotion();
   const insets = useSafeAreaInsets();
@@ -112,13 +113,20 @@ export default function ScrollToTopFAB({ scrollRef, visible = true, hasBottomTab
       animateFrom="right"
       iconMode="static"
       style={[
-        styles.fabStyle,
+        styles.fabStyle, // Always use absolute positioning
         {
           backgroundColor: theme.colors.secondaryContainer,
           borderRadius: SPACING.base, // M3: FAB corner radius is 16dp
-          bottom: bottomPosition,
-          right: bottomSpacing,
-          zIndex: 1000,
+          ...(containerPositioned ? {
+            // When container-positioned, position at bottom-right of container
+            position: 'absolute',
+            bottom: 0,
+            right: 0,
+          } : {
+            bottom: bottomPosition,
+            right: bottomSpacing,
+          }),
+          zIndex: 998, // Lower than toolbar (1000) to ensure toolbar buttons receive touches
           elevation: 3, // M3: FAB elevation is 3dp (increases to 4dp when pressed)
         },
       ]}

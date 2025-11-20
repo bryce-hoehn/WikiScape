@@ -4,12 +4,13 @@ import { SPACING } from '@/constants/spacing';
 import { TYPOGRAPHY } from '@/constants/typography';
 import { useBookmarks } from '@/context/BookmarksContext';
 import { useThemeContext } from '@/context/ThemeProvider';
-import { useReducedMotion, useVisitedArticles } from '@/hooks';
+import { useReducedMotion, useVisitedArticles, useFontFamily, useFontSize, useLineHeight, useParagraphSpacing, useReadingWidth, useAccordionBehavior } from '@/hooks';
 import {
     exportUserProfile,
     importUserProfile,
     readFileContent,
 } from '@/utils/bookmarkImportExport';
+import { getAppVersion } from '@/utils/env';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, useWindowDimensions, View } from 'react-native';
@@ -33,6 +34,12 @@ export default function SettingsScreen() {
   const { currentTheme, setTheme } = useThemeContext();
   const { visitedArticles, loadVisitedArticles } = useVisitedArticles();
   const { reducedMotion, setReducedMotion } = useReducedMotion();
+  const { updateFontSize } = useFontSize();
+  const { fontFamily, updateFontFamily } = useFontFamily();
+  const { lineHeight, updateLineHeight } = useLineHeight();
+  const { paragraphSpacing, updateParagraphSpacing } = useParagraphSpacing();
+  const { readingPadding, updateReadingPadding } = useReadingWidth();
+  const { accordionAutoClose, setAccordionAutoClose } = useAccordionBehavior();
   const { showSuccess, showError } = useSnackbar();
   const { bookmarks, loadBookmarks } = useBookmarks();
   const [isExporting, setIsExporting] = useState(false);
@@ -125,6 +132,27 @@ export default function SettingsScreen() {
                 if (result.theme !== null) {
                   await setTheme(result.theme);
                 }
+                if (result.fontSize !== null) {
+                  await updateFontSize(result.fontSize);
+                }
+                if (result.fontFamily !== null) {
+                  await updateFontFamily(result.fontFamily as any);
+                }
+                if (result.lineHeight !== null) {
+                  await updateLineHeight(result.lineHeight);
+                }
+                if (result.paragraphSpacing !== null) {
+                  await updateParagraphSpacing(result.paragraphSpacing);
+                }
+                if (result.readingPadding !== null) {
+                  await updateReadingPadding(result.readingPadding);
+                }
+                if (result.reducedMotion !== null) {
+                  await setReducedMotion(result.reducedMotion);
+                }
+                if (result.accordionAutoClose !== null) {
+                  await setAccordionAutoClose(result.accordionAutoClose);
+                }
 
                 setImportProgress(0.95);
                 const parts: string[] = [];
@@ -138,7 +166,15 @@ export default function SettingsScreen() {
                     `${result.visitedArticles.length} history item${result.visitedArticles.length !== 1 ? 's' : ''}`
                   );
                 }
-                if (result.theme !== null || result.fontSize !== null) {
+                const hasSettings = result.theme !== null || 
+                  result.fontSize !== null || 
+                  result.fontFamily !== null || 
+                  result.lineHeight !== null || 
+                  result.paragraphSpacing !== null || 
+                  result.readingPadding !== null || 
+                  result.reducedMotion !== null || 
+                  result.accordionAutoClose !== null;
+                if (hasSettings) {
                   parts.push('settings');
                 }
 
@@ -196,6 +232,27 @@ export default function SettingsScreen() {
           if (importResult.theme !== null) {
             await setTheme(importResult.theme);
           }
+          if (importResult.fontSize !== null) {
+            await updateFontSize(importResult.fontSize);
+          }
+          if (importResult.fontFamily !== null) {
+            await updateFontFamily(importResult.fontFamily as any);
+          }
+          if (importResult.lineHeight !== null) {
+            await updateLineHeight(importResult.lineHeight);
+          }
+          if (importResult.paragraphSpacing !== null) {
+            await updateParagraphSpacing(importResult.paragraphSpacing);
+          }
+          if (importResult.readingPadding !== null) {
+            await updateReadingPadding(importResult.readingPadding);
+          }
+          if (importResult.reducedMotion !== null) {
+            await setReducedMotion(importResult.reducedMotion);
+          }
+          if (importResult.accordionAutoClose !== null) {
+            await setAccordionAutoClose(importResult.accordionAutoClose);
+          }
 
           setImportProgress(0.95);
           const parts: string[] = [];
@@ -209,7 +266,15 @@ export default function SettingsScreen() {
               `${importResult.visitedArticles.length} history item${importResult.visitedArticles.length !== 1 ? 's' : ''}`
             );
           }
-          if (importResult.theme !== null || importResult.fontSize !== null) {
+          const hasSettings = importResult.theme !== null || 
+            importResult.fontSize !== null || 
+            importResult.fontFamily !== null || 
+            importResult.lineHeight !== null || 
+            importResult.paragraphSpacing !== null || 
+            importResult.readingPadding !== null || 
+            importResult.reducedMotion !== null || 
+            importResult.accordionAutoClose !== null;
+          if (hasSettings) {
             parts.push('settings');
           }
 
@@ -282,26 +347,26 @@ export default function SettingsScreen() {
             borderRadius: width >= LAYOUT.DESKTOP_BREAKPOINT ? 28 : SPACING.base, // M3: 28dp for large screens, 16dp for mobile
           }}
         >
-          <Text variant="headlineSmall" style={{ marginBottom: 16, fontWeight: '700' }}>
+          <Text variant="headlineSmall" style={{ marginBottom: SPACING.base, fontWeight: '700' }}>
             Settings Help
           </Text>
-          <Text variant="bodyMedium" style={{ marginBottom: 16, lineHeight: 22 }}>
+          <Text variant="bodyMedium" style={{ marginBottom: SPACING.base, lineHeight: 22 }}>
             <Text style={{ fontWeight: '600' }}>Theme:</Text> Choose your preferred color scheme.
             Automatic follows your system settings.
           </Text>
-          <Text variant="bodyMedium" style={{ marginBottom: 16, lineHeight: 22 }}>
+          <Text variant="bodyMedium" style={{ marginBottom: SPACING.base, lineHeight: 22 }}>
             <Text style={{ fontWeight: '600' }}>Hide Sensitive Content:</Text> Blurs sensitive
             images using Wikipedia&apos;s official content filter.
           </Text>
-          <Text variant="bodyMedium" style={{ marginBottom: 16, lineHeight: 22 }}>
+          <Text variant="bodyMedium" style={{ marginBottom: SPACING.base, lineHeight: 22 }}>
             <Text style={{ fontWeight: '600' }}>Reading Preferences:</Text> Customize your reading
             experience with line height, paragraph spacing, reading width, and font family settings.
           </Text>
-          <Text variant="bodyMedium" style={{ marginBottom: 16, lineHeight: 22 }}>
+          <Text variant="bodyMedium" style={{ marginBottom: SPACING.base, lineHeight: 22 }}>
             <Text style={{ fontWeight: '600' }}>Reading History:</Text> View articles you&apos;ve
             recently read. Used for personalized recommendations. Access from the Reading section.
           </Text>
-          <Button mode="contained" onPress={() => setHelpVisible(false)} style={{ marginTop: 8 }}>
+          <Button mode="contained" onPress={() => setHelpVisible(false)} style={{ marginTop: SPACING.sm }}>
             Got it
           </Button>
         </Modal>
@@ -374,7 +439,7 @@ export default function SettingsScreen() {
           </Menu>
         </List.Section>
 
-        <Divider style={{ marginVertical: 8 }} />
+        <Divider style={{ marginVertical: SPACING.sm }} />
 
         {/* Accessibility Section */}
         <List.Section>
@@ -389,7 +454,7 @@ export default function SettingsScreen() {
           />
         </List.Section>
 
-        <Divider style={{ marginVertical: 8 }} />
+        <Divider style={{ marginVertical: SPACING.sm }} />
 
         {/* Reading Preferences Section */}
         <List.Section>
@@ -414,7 +479,7 @@ export default function SettingsScreen() {
           />
         </List.Section>
 
-        <Divider style={{ marginVertical: 8 }} />
+        <Divider style={{ marginVertical: SPACING.sm }} />
 
         {/* Data Management Section */}
         <List.Section>
@@ -431,14 +496,14 @@ export default function SettingsScreen() {
               variant="bodySmall"
               style={{
                 color: theme.colors.onSurfaceVariant,
-                marginBottom: 12,
+                marginBottom: SPACING.md,
                 lineHeight: 18,
               }}
             >
               Export your complete user profile (bookmarks, reading history, reading progress, and
               settings) to a JSON file for backup, or import from a previously exported file.
             </Text>
-            <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+            <View style={{ flexDirection: 'row', gap: SPACING.md, flexWrap: 'wrap' }}>
               <Button
                 mode="outlined"
                 onPress={handleExportProfile}
@@ -463,14 +528,14 @@ export default function SettingsScreen() {
           </View>
         </List.Section>
 
-        <Divider style={{ marginVertical: 8 }} />
+        <Divider style={{ marginVertical: SPACING.sm }} />
 
         {/* App Information Section */}
         <List.Section>
           <List.Subheader>About</List.Subheader>
           <List.Item
             title="Version"
-            description="0.1.0-beta • Beta version"
+            description={`${getAppVersion()} • Beta version`}
             left={(props) => <List.Icon {...props} icon="information-outline" />}
             titleStyle={{ fontWeight: '500' }}
           />

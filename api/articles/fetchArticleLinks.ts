@@ -1,4 +1,4 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { actionAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 
 interface LinksResponse {
   query: {
@@ -21,14 +21,35 @@ interface LinksResponse {
  * This provides relevant recommendations based on article content relationships
  */
 export const fetchArticleLinks = async (articleTitle: string): Promise<string[]> => {
+  const results = await fetchArticleLinksBatch([articleTitle]);
+  return results[articleTitle] || [];
+};
+
+/**
+ * Fetches forward links for multiple articles in a single API call using pipe character (|)
+ * This follows Wikipedia's best practice of batching requests
+ * 
+ * @param articleTitles - Array of article titles to fetch links for
+ * @returns Map of article title to array of link titles
+ */
+export const fetchArticleLinksBatch = async (
+  articleTitles: string[]
+): Promise<Record<string, string[]>> => {
+  if (articleTitles.length === 0) {
+    return {};
+  }
+
   try {
-    const response = await axiosInstance.get<LinksResponse>('', {
+    // Batch multiple titles using pipe character (|) - Wikipedia best practice
+    const titlesParam = articleTitles.join('|');
+
+    const response = await actionAxiosInstance.get<LinksResponse>('', {
       baseURL: WIKIPEDIA_API_CONFIG.BASE_URL,
       params: {
         action: 'query',
         prop: 'links',
-        titles: articleTitle,
-        pllimit: 50, // Get up to 50 forward links
+        titles: titlesParam,
+        pllimit: 50, // Get up to 50 forward links per article
         format: 'json',
         origin: '*',
       },
@@ -36,15 +57,18 @@ export const fetchArticleLinks = async (articleTitle: string): Promise<string[]>
 
     const pages = response.data.query?.pages;
     if (!pages) {
-      return [];
+      return {};
     }
 
-    // Extract link titles from the first page
-    const page = Object.values(pages)[0];
-    const links = page?.links || [];
+    // Process each page's links
+    const results: Record<string, string[]> = {};
+    
+    for (const page of Object.values(pages)) {
+      const articleTitle = page.title;
+      const links = page.links || [];
 
     // Filter to only include main namespace articles (ns: 0) and exclude unwanted pages
-    return links
+      const filteredLinks = links
       .filter((link) => {
         const title = link.title;
         return (
@@ -62,14 +86,19 @@ export const fetchArticleLinks = async (articleTitle: string): Promise<string[]>
         );
       })
       .map((link) => link.title);
+
+      results[articleTitle] = filteredLinks;
+    }
+
+    return results;
   } catch (error: unknown) {
     if (typeof __DEV__ !== 'undefined' && __DEV__) {
       console.error(
-        `Failed to fetch forward links for ${articleTitle}:`,
+        `Failed to fetch forward links batch:`,
         (error as { response?: { status?: number; data?: unknown } }).response?.status,
         (error as { response?: { data?: unknown } }).response?.data || error
       );
     }
-    return [];
+    return {};
   }
 };

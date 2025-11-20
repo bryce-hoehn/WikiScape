@@ -10,15 +10,13 @@ import useThumbnailLoader from '@/hooks/ui/useThumbnailLoader';
 import { shareArticle } from '@/utils/shareUtils';
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import React, { memo, ReactNode, Suspense, useCallback, useState } from 'react';
+import React, { memo, ReactNode, useCallback, useState } from 'react';
 import { Platform, useWindowDimensions, View } from 'react-native';
 import { Card, IconButton, Text, type MD3Theme } from 'react-native-paper';
 import { DidYouKnowItem } from '../../types/api/featured';
 import { RecommendationItem } from '../../types/components';
 import ResponsiveImage from '../common/ResponsiveImage';
 
-// Lazy load ImageDialog - only needed when user opens an image
-const ImageDialog = React.lazy(() => import('../article/ImageDialog'));
 
 export type FeaturedCardItem = RecommendationItem | DidYouKnowItem;
 
@@ -60,8 +58,6 @@ function BaseFeaturedCard({
   const description = getDescription(item);
   const displayTitle = formatTitle ? formatTitle(title) : title;
   const hasHtmlContent = description.includes('<') && description.includes('>');
-  const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{ uri: string; alt?: string } | null>(null);
   const [isHovered, setIsHovered] = useState(false);
 
   // Determine if we're on a small screen (mobile)
@@ -108,10 +104,6 @@ function BaseFeaturedCard({
     [articleTitle, description, thumbnail, handleBookmarkToggle]
   );
 
-  const handleImagePress = useCallback((image: { uri: string; alt?: string }) => {
-    setSelectedImage(image);
-    setImageModalVisible(true);
-  }, []);
 
   // Web-specific: Hover handlers with prefetching
   const queryClient = useQueryClient();
@@ -215,7 +207,6 @@ function BaseFeaturedCard({
               contentFit="cover"
               style={{ height: imageHeight, width: '100%' }}
               alt={`Thumbnail for ${displayTitle}`}
-              onPress={handleImagePress}
             />
           ) : (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -298,19 +289,6 @@ function BaseFeaturedCard({
           </View>
         </Card.Content>
       </Card>
-
-      {imageModalVisible && (
-        <Suspense fallback={null}>
-          <ImageDialog
-            visible={imageModalVisible}
-            selectedImage={selectedImage}
-            onClose={() => {
-              setImageModalVisible(false);
-              setSelectedImage(null);
-            }}
-          />
-        </Suspense>
-      )}
     </View>
   );
 }

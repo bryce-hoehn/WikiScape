@@ -9,7 +9,7 @@ interface ForYouFeedProps {
   scrollY?: Animated.Value;
 }
 
-export default function ForYouFeed({ scrollY }: ForYouFeedProps) {
+function ForYouFeed({ scrollY }: ForYouFeedProps) {
   const { getRecommendations } = useBacklinkRecommendations();
   const { visitedArticles, loading: visitedArticlesLoading } = useVisitedArticles();
   const { showError } = useSnackbar();
@@ -143,3 +143,5 @@ export default function ForYouFeed({ scrollY }: ForYouFeedProps) {
     />
   );
 }
+
+export default React.memo(ForYouFeed);

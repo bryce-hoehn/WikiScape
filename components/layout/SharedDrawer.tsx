@@ -97,9 +97,9 @@ export default function SharedDrawer({ children }: SharedDrawerProps) {
 
   // Calculate top padding to align with first category card
   // Appbar.Header height (64px on desktop/web) + FlashList paddingVertical (8px) + card top margin (8px) = 80px
-  const headerHeight = 64; // Standard Appbar.Header height on desktop/web
-  const listPadding = 8; // paddingVertical from FlashList contentContainerStyle
-  const cardMargin = 8; // margin from category cards
+  const headerHeight = SPACING.xxxl; // Standard Appbar.Header height on desktop/web (64dp)
+  const listPadding = SPACING.sm; // paddingVertical from FlashList contentContainerStyle
+  const cardMargin = SPACING.sm; // margin from category cards
   const topPadding = headerHeight + listPadding + cardMargin;
 
   const navigationItems = [

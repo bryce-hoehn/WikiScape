@@ -20,7 +20,7 @@ export default function ReadingPreferencesScreen() {
   const [fontFamilyMenuVisible, setFontFamilyMenuVisible] = useState(false);
 
   // Responsive max width for content (max 800px for better readability)
-  const maxContentWidth = Math.min(width - 32, 800);
+  const maxContentWidth = Math.min(width - SPACING.xl, 800);
 
   return (
     <>

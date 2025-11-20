@@ -11,9 +11,9 @@ interface HotFeedProps {
   scrollY?: Animated.Value;
 }
 
-export default function HotFeed({ scrollY }: HotFeedProps) {
-  const { data: trendingArticles = [], isLoading, refetch } = useTrendingArticles();
-  const { displayedArticles, loadingMore, loadMore } = useHotArticles(trendingArticles);
+function HotFeed({ scrollY }: HotFeedProps) {
+  const { data: trendingArticles, isLoading, refetch } = useTrendingArticles();
+  const { displayedArticles, loadingMore, loadMore } = useHotArticles(trendingArticles ?? []);
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -73,3 +73,5 @@ export default function HotFeed({ scrollY }: HotFeedProps) {
     />
   );
 }
+
+export default React.memo(HotFeed);

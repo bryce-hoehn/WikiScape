@@ -1,27 +1,25 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 import { PageViewResponse, TrendingArticle } from '@/types/api/featured';
 
 /**
  * Fetches trending articles from Wikipedia using the Pageviews API
+ * 
+ * @param date - Optional date to fetch data for (defaults to today). 
+ *               Pageviews API typically has complete data 2 days after the date.
  */
-export const fetchTrendingArticles = async (): Promise<TrendingArticle[]> => {
+export const fetchTrendingArticles = async (date?: Date): Promise<TrendingArticle[]> => {
   try {
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
-    const year = twoDaysAgo.getFullYear();
-    const month = String(twoDaysAgo.getMonth() + 1).padStart(2, '0');
-    const day = String(twoDaysAgo.getDate()).padStart(2, '0');
+    const targetDate = date || new Date();
+    const year = targetDate.getUTCFullYear();
+    const month = String(targetDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getUTCDate()).padStart(2, '0');
 
     const url = `/metrics/pageviews/top/en.wikipedia/all-access/${year}/${month}/${day}`;
 
-    const response = await axiosInstance.get<PageViewResponse>(url, {
+    const response = await restAxiosInstance.get<PageViewResponse>(url, {
       baseURL: WIKIPEDIA_API_CONFIG.WIKIMEDIA_PAGEVIEWS_BASE_URL,
       headers: {
         Accept: 'application/json',
-      },
-      params: {
-        origin: '*',
       },
     });
 
@@ -32,8 +30,8 @@ export const fetchTrendingArticles = async (): Promise<TrendingArticle[]> => {
     const articles = response.data.items[0].articles;
 
     const trendingArticles = articles.map((article, index) => {
-      const rankScore = 100 - index; // Higher rank gets higher score
-      const viewScore = Math.log(article.views + 1); // Log scale to normalize view counts
+      const rankScore = 100 - index;
+      const viewScore = Math.log(article.views + 1);
       const trendingRatio = rankScore * viewScore;
 
       return {
@@ -43,12 +41,10 @@ export const fetchTrendingArticles = async (): Promise<TrendingArticle[]> => {
       };
     });
 
-    // Sort by trending ratio (highest first) and return top articles
     return trendingArticles
       .filter((article) => article.trendingRatio > 0)
       .sort((a, b) => b.trendingRatio - a.trendingRatio);
   } catch (error: unknown) {
-    // Re-throw error to be handled by caller
     throw error;
   }
 };

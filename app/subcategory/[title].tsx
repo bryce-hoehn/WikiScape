@@ -327,12 +327,12 @@ export default function SubCategories() {
                 flex: 1,
                 flexDirection: 'row',
                 alignItems: 'center',
-                paddingHorizontal: 8,
+                paddingHorizontal: SPACING.sm,
                 paddingTop: insets.top,
               }}
             >
               <Appbar.BackAction onPress={handleBack} />
-              <Text style={{ fontWeight: '700', fontSize: 20, flex: 1 }}>
+              <Text style={{ fontWeight: '700', fontSize: TYPOGRAPHY.titleLarge, flex: 1 }}>
                 {title?.replace(/_/g, ' ') || 'Category'}
               </Text>
             </View>

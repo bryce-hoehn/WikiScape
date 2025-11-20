@@ -1,6 +1,7 @@
 import { Article } from '@/types/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useState } from 'react';
+import useArticleLinks from './useArticleLinks';
 import useAsyncStorage from './useAsyncStorage';
 
 export interface VisitedArticle {
@@ -70,6 +71,7 @@ export default function useVisitedArticles() {
       );
     },
   });
+  const { removeArticleLinks, clearAllLinks } = useArticleLinks();
   const [error, setError] = useState<string | null>(null);
 
   // Load visited articles (refresh from storage)
@@ -123,6 +125,9 @@ export default function useVisitedArticles() {
   const removeVisitedArticle = useCallback(
     async (title: string) => {
       try {
+        // Remove article links first
+        await removeArticleLinks(title);
+
         // Use functional update to avoid stale closure issues
         await updateValue((prevArticles) => {
           const updatedArticles = prevArticles.filter((a) => a.title !== title);
@@ -143,11 +148,15 @@ export default function useVisitedArticles() {
         return false;
       }
     },
-    [updateValue]
+    [updateValue, removeArticleLinks]
   );
 
   const clearVisitedArticles = useCallback(async () => {
     try {
+      // Clear all article links first
+      await clearAllLinks();
+
+      // Then clear visited articles
       await AsyncStorage.removeItem(VISITED_ARTICLES_KEY);
       await updateValue([]);
       return true;
@@ -155,7 +164,7 @@ export default function useVisitedArticles() {
       setError('Failed to clear visited articles');
       return false;
     }
-  }, [updateValue]);
+  }, [updateValue, clearAllLinks]);
 
   return {
     visitedArticles,

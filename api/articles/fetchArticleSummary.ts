@@ -1,4 +1,4 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 import { Article, ArticleResponse } from '@/types/api';
 import { isAxiosError } from '@/types/api/base';
 import { normalizeWikipediaTitle } from '@/utils/titleNormalization';
@@ -26,7 +26,7 @@ export const fetchArticleSummary = async (title: string): Promise<ArticleRespons
   try {
     const cleanTitle = normalizeWikipediaTitle(title);
 
-    const response = await axiosInstance.get<Article>(
+    const response = await restAxiosInstance.get<Article>(
       `/page/summary/${encodeURIComponent(cleanTitle)}`,
       {
         baseURL: WIKIPEDIA_API_CONFIG.REST_API_BASE_URL,

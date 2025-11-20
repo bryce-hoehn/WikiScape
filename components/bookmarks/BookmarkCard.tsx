@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   GestureResponderEvent,
   Platform,
@@ -13,8 +13,6 @@ import { SPACING } from '../../constants/spacing';
 import { TYPOGRAPHY } from '../../constants/typography';
 import ResponsiveImage from '../common/ResponsiveImage';
 
-// Lazy load ImageDialog - only needed when user opens an image
-const ImageDialog = React.lazy(() => import('../article/ImageDialog'));
 
 import { LAYOUT } from '../../constants/layout';
 import { useSnackbar } from '../../context/SnackbarContext';
@@ -47,8 +45,6 @@ const BookmarkCard = React.memo(function BookmarkCard({
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{ uri: string; alt?: string } | null>(null);
   const readingProgress = getProgress(item.title);
   const isDownloaded = isArticleDownloaded(item.title);
 
@@ -93,10 +89,6 @@ const BookmarkCard = React.memo(function BookmarkCard({
     setIsPressed(false);
   };
 
-  const handleImagePress = (image: { uri: string; alt?: string }) => {
-    setSelectedImage(image);
-    setImageModalVisible(true);
-  };
 
   // Web-specific: Hover handlers
   const handleMouseEnter = () => {
@@ -231,7 +223,6 @@ const BookmarkCard = React.memo(function BookmarkCard({
                   height: cardHeight,
                 }}
                 alt={`Thumbnail for ${item.title}`}
-                onPress={handleImagePress}
               />
             ) : (
               <View
@@ -470,19 +461,6 @@ const BookmarkCard = React.memo(function BookmarkCard({
           </Card.Content>
         </View>
       </Card>
-
-      {imageModalVisible && (
-        <Suspense fallback={null}>
-          <ImageDialog
-            visible={imageModalVisible}
-            selectedImage={selectedImage}
-            onClose={() => {
-              setImageModalVisible(false);
-              setSelectedImage(null);
-            }}
-          />
-        </Suspense>
-      )}
     </Pressable>
   );
 });

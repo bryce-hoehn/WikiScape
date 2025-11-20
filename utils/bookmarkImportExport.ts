@@ -23,6 +23,12 @@ const VISITED_ARTICLES_KEY = 'visited_articles';
 const READING_PROGRESS_KEY = 'reading_progress';
 const THEME_STORAGE_KEY = 'wikipediaexpo_theme_preference';
 const FONT_SIZE_KEY = 'articleFontSize';
+const FONT_FAMILY_KEY = 'articleFontFamily';
+const LINE_HEIGHT_KEY = 'articleLineHeight';
+const PARAGRAPH_SPACING_KEY = 'articleParagraphSpacing';
+const READING_PADDING_KEY = 'articleReadingPadding';
+const REDUCED_MOTION_KEY = '@wikiscroll:reducedMotion';
+const ACCORDION_BEHAVIOR_KEY = 'accordion_auto_close';
 
 export interface UserProfileExportData {
   version: string;
@@ -36,6 +42,12 @@ export interface UserProfileExportData {
   // Settings
   theme: ThemeType | null;
   fontSize: number | null;
+  fontFamily: string | null;
+  lineHeight: number | null;
+  paragraphSpacing: number | null;
+  readingPadding: number | null;
+  reducedMotion: boolean | null;
+  accordionAutoClose: boolean | null;
 }
 
 /**
@@ -98,6 +110,12 @@ export async function exportUserProfile(): Promise<boolean> {
     // Load settings
     const theme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
     const fontSizeJson = await AsyncStorage.getItem(FONT_SIZE_KEY);
+    const fontFamily = await AsyncStorage.getItem(FONT_FAMILY_KEY);
+    const lineHeightJson = await AsyncStorage.getItem(LINE_HEIGHT_KEY);
+    const paragraphSpacingJson = await AsyncStorage.getItem(PARAGRAPH_SPACING_KEY);
+    const readingPaddingJson = await AsyncStorage.getItem(READING_PADDING_KEY);
+    const reducedMotionJson = await AsyncStorage.getItem(REDUCED_MOTION_KEY);
+    const accordionAutoCloseJson = await AsyncStorage.getItem(ACCORDION_BEHAVIOR_KEY);
 
     const exportData: UserProfileExportData = {
       version: '1.0',
@@ -108,6 +126,12 @@ export async function exportUserProfile(): Promise<boolean> {
       readingProgress,
       theme: theme as ThemeType | null,
       fontSize: fontSizeJson ? parseInt(fontSizeJson, 10) : null,
+      fontFamily: fontFamily || null,
+      lineHeight: lineHeightJson ? parseFloat(lineHeightJson) : null,
+      paragraphSpacing: paragraphSpacingJson ? parseInt(paragraphSpacingJson, 10) : null,
+      readingPadding: readingPaddingJson ? parseInt(readingPaddingJson, 10) : null,
+      reducedMotion: reducedMotionJson ? reducedMotionJson === 'true' : null,
+      accordionAutoClose: accordionAutoCloseJson ? accordionAutoCloseJson === 'true' : null,
     };
 
     const jsonString = JSON.stringify(exportData, null, 2);
@@ -165,6 +189,12 @@ export async function importUserProfile(fileContent: string): Promise<{
   readingProgress: Record<string, ReadingProgress>;
   theme: ThemeType | null;
   fontSize: number | null;
+  fontFamily: string | null;
+  lineHeight: number | null;
+  paragraphSpacing: number | null;
+  readingPadding: number | null;
+  reducedMotion: boolean | null;
+  accordionAutoClose: boolean | null;
 }> {
   try {
     let data: UserProfileExportData;
@@ -260,9 +290,32 @@ export async function importUserProfile(fileContent: string): Promise<{
       await AsyncStorage.setItem(THEME_STORAGE_KEY, data.theme);
     }
 
-
     if (data.fontSize !== null && data.fontSize !== undefined) {
       await AsyncStorage.setItem(FONT_SIZE_KEY, String(data.fontSize));
+    }
+
+    if (data.fontFamily !== null && data.fontFamily !== undefined) {
+      await AsyncStorage.setItem(FONT_FAMILY_KEY, data.fontFamily);
+    }
+
+    if (data.lineHeight !== null && data.lineHeight !== undefined) {
+      await AsyncStorage.setItem(LINE_HEIGHT_KEY, String(data.lineHeight));
+    }
+
+    if (data.paragraphSpacing !== null && data.paragraphSpacing !== undefined) {
+      await AsyncStorage.setItem(PARAGRAPH_SPACING_KEY, String(data.paragraphSpacing));
+    }
+
+    if (data.readingPadding !== null && data.readingPadding !== undefined) {
+      await AsyncStorage.setItem(READING_PADDING_KEY, String(data.readingPadding));
+    }
+
+    if (data.reducedMotion !== null && data.reducedMotion !== undefined) {
+      await AsyncStorage.setItem(REDUCED_MOTION_KEY, String(data.reducedMotion));
+    }
+
+    if (data.accordionAutoClose !== null && data.accordionAutoClose !== undefined) {
+      await AsyncStorage.setItem(ACCORDION_BEHAVIOR_KEY, String(data.accordionAutoClose));
     }
 
     return {
@@ -272,6 +325,12 @@ export async function importUserProfile(fileContent: string): Promise<{
       readingProgress: data.readingProgress || {},
       theme: data.theme ?? null,
       fontSize: data.fontSize ?? null,
+      fontFamily: data.fontFamily ?? null,
+      lineHeight: data.lineHeight ?? null,
+      paragraphSpacing: data.paragraphSpacing ?? null,
+      readingPadding: data.readingPadding ?? null,
+      reducedMotion: data.reducedMotion ?? null,
+      accordionAutoClose: data.accordionAutoClose ?? null,
     };
   } catch (error) {
     if (typeof __DEV__ !== 'undefined' && __DEV__) {

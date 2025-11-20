@@ -1,14 +1,13 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { List, Text, useTheme } from 'react-native-paper';
 import { getHoverStyles } from '../../constants/motion';
 import { SPACING } from '../../constants/spacing';
 import { TYPOGRAPHY } from '../../constants/typography';
 import { useReducedMotion } from '../../hooks';
 import { getRandomBlurhash } from '../../utils/blurhash';
-import ImageDialog from '../article/ImageDialog';
 
 interface TrendingListItemProps {
   item: {
@@ -34,17 +33,9 @@ export default function TrendingListItem({
   isLast,
 }: TrendingListItemProps) {
   const theme = useTheme();
-  const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{ uri: string; alt?: string } | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const { reducedMotion } = useReducedMotion();
 
-  const handleImagePress = () => {
-    if (item.thumbnail) {
-      setSelectedImage({ uri: item.thumbnail, alt: `Thumbnail for ${item.normalizedTitle}` });
-      setImageModalVisible(true);
-    }
-  };
 
   // Web-specific: Hover handlers
   const handleMouseEnter = () => {
@@ -84,11 +75,7 @@ export default function TrendingListItem({
         })}
         left={(props) =>
           item.thumbnail ? (
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                handleImagePress();
-              }}
+            <View
               style={{
                 width: 48,
                 height: 48,
@@ -106,7 +93,7 @@ export default function TrendingListItem({
                 alt={`Thumbnail for ${item.normalizedTitle}`}
                 accessibilityLabel={`Thumbnail for ${item.normalizedTitle}`}
               />
-            </Pressable>
+            </View>
           ) : (
             <View
               style={{
@@ -150,15 +137,6 @@ export default function TrendingListItem({
             borderBottomLeftRadius: isLast ? theme.roundness * 3 : theme.roundness * 0.5, // Match Card border radius for last item
             borderBottomRightRadius: isLast ? theme.roundness * 3 : theme.roundness * 0.5, // Match Card border radius for last item
           }),
-        }}
-      />
-
-      <ImageDialog
-        visible={imageModalVisible}
-        selectedImage={selectedImage}
-        onClose={() => {
-          setImageModalVisible(false);
-          setSelectedImage(null);
         }}
       />
     </>

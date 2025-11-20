@@ -3,6 +3,7 @@ import AppSidebar from '@/components/layout/AppSidebar';
 import ContentWithSidebar from '@/components/layout/ContentWithSidebar';
 import SharedDrawer from '@/components/layout/SharedDrawer';
 import { LAYOUT } from '@/constants/layout';
+import { SPACING } from '@/constants/spacing';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Tabs } from 'expo-router';
 import React from 'react';
@@ -13,8 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function TabLayout() {
   const theme = useTheme();
   const { width } = useWindowDimensions();
-  const isLargeScreen = width >= LAYOUT.DESKTOP_BREAKPOINT;
   const insets = useSafeAreaInsets();
+  const isLargeScreen = width >= LAYOUT.DESKTOP_BREAKPOINT;
 
   // Common screen options
   const commonScreenOptions = {
@@ -41,8 +42,16 @@ export default function TabLayout() {
                     backgroundColor: theme.colors.surface,
                     borderTopWidth: 0,
                     // Add safe area padding for iOS PWA home indicator
-                    paddingBottom: Platform.OS === 'web' ? Math.max(insets.bottom, 8) : insets.bottom,
-                    height: 56 + (Platform.OS === 'web' ? Math.max(insets.bottom, 8) : insets.bottom),
+                    paddingBottom: Platform.OS === 'web' ? Math.max(insets.bottom, SPACING.sm) : insets.bottom,
+                    height: 56 + (Platform.OS === 'web' ? Math.max(insets.bottom, SPACING.sm) : insets.bottom),
+                    // Ensure tab bar is visible and positioned correctly on web mobile browsers
+                    ...(Platform.OS === 'web' && {
+                      position: 'fixed' as any,
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      zIndex: 1000,
+                    }),
                   },
             }}
           >

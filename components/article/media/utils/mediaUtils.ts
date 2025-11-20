@@ -1,4 +1,4 @@
-import { axiosInstance } from '../../../../api/shared';
+import { actionAxiosInstance } from '../../../../api/shared';
 
 /**
  * Normalize filename by decoding URI and removing File:/Image: prefix
@@ -25,7 +25,7 @@ export async function getDirectFileUrl(fileName: string): Promise<string> {
 
     // Use Wikipedia API fileinfo endpoint to get direct file URL
     // This endpoint supports CORS and returns the direct upload.wikimedia.org URL
-    const response = await axiosInstance.get('', {
+    const response = await actionAxiosInstance.get('', {
       baseURL: 'https://commons.wikimedia.org/w/api.php',
       params: {
         action: 'query',

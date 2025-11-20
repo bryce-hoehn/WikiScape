@@ -14,7 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Platform, View, useWindowDimensions } from 'react-native';
-import { Divider, Text, TouchableRipple, useTheme } from 'react-native-paper';
+import { Divider, TouchableRipple, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationState, Route, SceneRendererProps, TabView } from 'react-native-tab-view';
 
@@ -135,6 +135,25 @@ export default function HomeScreen() {
     [scrollY]
   );
 
+  // Lazy loading placeholder - shows while tab is being loaded
+  const renderLazyPlaceholder = useCallback(
+    ({ route }: { route: Route }) => {
+      return (
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: theme.colors.background,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          {/* Simple loading indicator - Feed components will show their own skeletons when loaded */}
+        </View>
+      );
+    },
+    [theme.colors.background]
+  );
+
   const HEADER_HEIGHT = 60;
 
   // Get animated spacing that moves up as header collapses
@@ -150,6 +169,7 @@ export default function HomeScreen() {
       }
     ) => {
     const { routes, index } = props.navigationState;
+    const { position } = props;
 
     // Account for left gutter (88px) + drawer (360px) = 448px on large screens
     const leftOffset = isLargeScreen ? 448 : 0;
@@ -191,6 +211,14 @@ export default function HomeScreen() {
             // Reference: https://m3.material.io/components/tabs/specs
             const fontWeight = focused ? '500' : '400';
 
+            // Animate text color and weight based on position for smooth transitions
+            const inputRange = routes.map((_, j) => j);
+            const opacity = position.interpolate({
+              inputRange,
+              outputRange: routes.map((_, j) => (j === i ? 1 : 0.6)),
+              extrapolate: 'clamp',
+            });
+
             return (
               <TouchableRipple
                 key={route.key}
@@ -215,39 +243,57 @@ export default function HomeScreen() {
                 testID={`tab-${route.key}`}
               >
                 <View style={{ alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
-                  <Text
+                  <Animated.Text
                     // MD3: Use titleSmall (14sp) for tab labels
                     // Reference: https://m3.material.io/components/tabs/specs
-                    variant="titleSmall"
                     style={{
                       fontSize: TYPOGRAPHY.tabLabel,
                       fontWeight: fontWeight,
                       lineHeight: 20, // Standard line height for 14sp
                       color: color,
+                      opacity: opacity,
                       textAlign: 'center',
                     }}
                   >
                     {route.title}
-                  </Text>
-                  {focused && (
-                    <View
-                      style={{
-                        position: 'absolute',
-                        // MD3: Indicator positioned at bottom of 48dp tab, height 2dp
-                        // Reference: https://m3.material.io/components/tabs/specs
-                        bottom: 0,
-                        left: '20%',
-                        right: '20%',
-                        height: 2, // 2dp per MD3 specification
-                        backgroundColor: theme.colors.primary,
-                        borderRadius: 1, // 1dp radius for 2dp height indicator
-                      }}
-                    />
-                  )}
+                  </Animated.Text>
                 </View>
               </TouchableRipple>
             );
           })}
+          
+          {/* Animated indicator that moves between tabs */}
+          {(() => {
+            const tabBarWidth = centeredMaxWidth || windowWidth;
+            const tabWidth = tabBarWidth / routes.length;
+            const indicatorWidth = tabWidth * 0.6; // 60% of tab width (20% margin on each side)
+            
+            return (
+              <Animated.View
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  height: 2, // 2dp per MD3 specification
+                  width: indicatorWidth,
+                  backgroundColor: theme.colors.primary,
+                  borderRadius: 1, // 1dp radius for 2dp height indicator
+                  transform: [
+                    {
+                      translateX: position.interpolate({
+                        inputRange: routes.map((_, i) => i),
+                        outputRange: routes.map((_, i) => {
+                          const margin = (tabWidth - indicatorWidth) / 2; // Center the indicator
+                          return i * tabWidth + margin;
+                        }),
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
+                }}
+              />
+            );
+          })()}
         </View>
         {/* Divider between FeedBar and feed */}
         <Divider />
@@ -274,6 +320,7 @@ export default function HomeScreen() {
             onIndexChange={setIndex}
             initialLayout={{ width: windowWidth }}
             renderTabBar={renderTabBar}
+            renderLazyPlaceholder={renderLazyPlaceholder}
             style={{ backgroundColor: theme.colors.surface, width: '100%', flex: 1 }}
             animationEnabled={!reducedMotion}
             swipeEnabled={!reducedMotion}

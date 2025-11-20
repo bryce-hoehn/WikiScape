@@ -1,10 +1,9 @@
 import { FlashList } from '@shopify/flash-list';
-import React, { memo, useCallback, useRef, useState } from 'react';
+import React, { memo, useCallback, useRef } from 'react';
 import { View } from 'react-native';
 import { List, Text, useTheme } from 'react-native-paper';
 import { SPACING } from '../../constants/spacing';
 import { useImagePrefetching } from '../../hooks';
-import ImageDialog from '../article/ImageDialog';
 import ResponsiveImage from '../common/ResponsiveImage';
 
 interface BaseListWithHeaderProps<T> {
@@ -41,13 +40,6 @@ function BaseListWithHeader<T>({
   estimatedItemSize = 80,
 }: BaseListWithHeaderProps<T>) {
   const theme = useTheme();
-  const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{ uri: string; alt?: string } | null>(null);
-
-  const handleImagePress = useCallback((image: { uri: string; alt?: string }) => {
-    setSelectedImage(image);
-    setImageModalVisible(true);
-  }, []);
 
   // Image prefetching: Prefetch images for items about to become visible
   const { onViewableItemsChanged } = useImagePrefetching({
@@ -103,7 +95,6 @@ function BaseListWithHeader<T>({
                   marginRight: SPACING.sm,
                 }}
                 alt={`Thumbnail for ${title}`}
-                onPress={handleImagePress}
               />
             ) : (
               <View
@@ -179,15 +170,6 @@ function BaseListWithHeader<T>({
         // MD3 Accessibility: Proper list role - per https://m3.material.io/components/search/accessibility
         accessibilityRole="list"
         accessibilityLabel={`${data.length} ${headerTitle.toLowerCase()}`}
-      />
-
-      <ImageDialog
-        visible={imageModalVisible}
-        selectedImage={selectedImage}
-        onClose={() => {
-          setImageModalVisible(false);
-          setSelectedImage(null);
-        }}
       />
     </>
   );

@@ -50,23 +50,3 @@ export const SPACING = {
   // Reference: https://m3.material.io/foundations/layout/understanding-layout/spacing
   xxxl: 64,
 } as const;
-
-/**
- * Component-specific height constants
- * Based on Material Design 3 specifications
- * 
- * Note: Tab height (48dp) and icon button size (48dp) use SPACING.xxl
- * These are kept separate for semantic clarity and component-specific documentation
- */
-export const HEIGHTS = {
-  // Search Bar Height
-  // MD3: Search bars use 56dp height
-  // Reference: https://m3.material.io/components/search/specs
-  searchBar: 56, // 56dp
-
-  // App Bar Height
-  // MD3: Small/Center-aligned app bars use 64dp height
-  // Reference: https://m3.material.io/components/app-bars/overview
-  // Note: This equals SPACING.xxxl (64dp) but kept for semantic clarity
-  appBar: 64, // 64dp (same as SPACING.xxxl)
-} as const;

@@ -1,5 +1,6 @@
 import HtmlRenderer from '@/components/common/HtmlRenderer';
 import { SPACING } from '@/constants/spacing';
+import { TYPOGRAPHY } from '@/constants/typography';
 import React, { memo } from 'react';
 import { Text, useTheme, type MD3Theme } from 'react-native-paper';
 import { RecommendationItem } from '../../types/components';
@@ -46,7 +47,7 @@ function NewsCard({ item, itemWidth, theme }: NewsCardProps) {
     return (
       <Text
         variant="bodyMedium"
-        style={{ fontSize: 14, lineHeight: 18, paddingTop: SPACING.md }}
+        style={{ fontSize: TYPOGRAPHY.bodyMedium, lineHeight: 18, paddingTop: SPACING.md }}
         numberOfLines={4}
       >
         {description}

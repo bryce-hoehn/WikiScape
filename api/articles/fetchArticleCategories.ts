@@ -1,4 +1,4 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { actionAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 import { WikipediaPage, WikipediaQueryResponse } from '@/types/api/base';
 
 /**
@@ -15,7 +15,7 @@ export async function fetchArticleCategories(articleTitle: string): Promise<stri
       origin: '*',
     };
 
-    const response = await axiosInstance.get<WikipediaQueryResponse>('', {
+    const response = await actionAxiosInstance.get<WikipediaQueryResponse>('', {
       baseURL: WIKIPEDIA_API_CONFIG.BASE_URL,
       params,
     });

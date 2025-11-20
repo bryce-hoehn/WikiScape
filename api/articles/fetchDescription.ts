@@ -1,9 +1,9 @@
-import { axiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
+import { restAxiosInstance, WIKIPEDIA_API_CONFIG } from '@/api/shared';
 
 export const fetchDescription = async (title: string): Promise<string | null> => {
   try {
     // Use the REST API summary endpoint to get the description
-    const response = await axiosInstance.get(`/page/summary/${encodeURIComponent(title)}`, {
+    const response = await restAxiosInstance.get(`/page/summary/${encodeURIComponent(title)}`, {
       baseURL: WIKIPEDIA_API_CONFIG.REST_API_BASE_URL,
     });
     const summaryData = response.data;

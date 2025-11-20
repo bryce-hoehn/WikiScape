@@ -1,5 +1,4 @@
 import { useArticleHtml, useReadingProgress } from '@/hooks';
-// import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import { router } from 'expo-router';
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Platform, ScrollView, UIManager, useWindowDimensions, View } from 'react-native';
@@ -15,7 +14,6 @@ import { useLazyFonts } from '../../hooks/fonts/useLazyFonts';
 import { MAX_FONT_SIZE, MIN_FONT_SIZE } from '../../hooks/storage/useFontSize';
 import { getUserFriendlyError } from '../../utils/errorHandling';
 import ErrorState from '../common/ErrorState';
-import ScrollToTopFAB from '../common/ScrollToTopFAB';
 import StandardEmptyState from '../common/StandardEmptyState';
 import ArticleSkeleton from './ArticleSkeleton';
 import ArticleToolbar from './ArticleToolbar';
@@ -115,14 +113,6 @@ export default function Article({
   const [scrollProgress, setScrollProgress] = useState(0);
   const [hasRestoredScroll, setHasRestoredScroll] = useState(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Keep screen awake while reading - disabled for now due to activation errors
-  // useEffect(() => {
-  //   activateKeepAwake();
-  //   return () => {
-  //     deactivateKeepAwake();
-  //   };
-  // }, []);
 
   // Memoize callbacks to prevent re-renders
   const handleSectionsExtracted = useCallback((newSections: { id: string; heading: string }[]) => {
@@ -466,8 +456,6 @@ export default function Article({
         )}
       </ScrollView>
 
-      <ScrollToTopFAB scrollRef={scrollViewRef} visible={fabVisible} hasBottomTabBar={false} />
-
       <ArticleToolbar
         onZoomIn={increaseFontSize}
         onZoomOut={decreaseFontSize}
@@ -479,6 +467,7 @@ export default function Article({
         currentFontSize={fontSize}
         visible={true}
         fabVisible={fabVisible}
+        scrollRef={scrollViewRef}
       />
     </View>
   );

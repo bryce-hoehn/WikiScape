@@ -15,7 +15,6 @@ import { Card, IconButton, Text, useTheme } from 'react-native-paper';
 import { DidYouKnowItem } from '../../types/api/featured';
 import { RecommendationItem } from '../../types/components';
 import { CardType } from '../../utils/cardUtils';
-import ImageDialog from '../article/ImageDialog';
 import ResponsiveImage from '../common/ResponsiveImage';
 
 export type HorizontalFeaturedCardItem = RecommendationItem | DidYouKnowItem;
@@ -44,7 +43,6 @@ const HorizontalFeaturedCard = memo(function HorizontalFeaturedCard({
   const queryClient = useQueryClient();
   const [isPressed, setIsPressed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [imageModalVisible, setImageModalVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
   const scaleAnim = useRef(new Animated.Value(reducedMotion ? 1 : 0.95)).current;
 
@@ -194,9 +192,6 @@ const HorizontalFeaturedCard = memo(function HorizontalFeaturedCard({
     [articleTitle, description, thumbnail, handleBookmarkToggle]
   );
 
-  const handleImagePress = useCallback((image: { uri: string; alt?: string }) => {
-    setImageModalVisible(true);
-  }, []);
 
   // Prefetch article HTML on hover
   const handleMouseEnter = useCallback(() => {
@@ -289,7 +284,6 @@ const HorizontalFeaturedCard = memo(function HorizontalFeaturedCard({
                     height: cardHeight,
                   }}
                   alt={`Thumbnail for ${displayTitle}`}
-                  onPress={handleImagePress}
                 />
               ) : (
                 <View
@@ -443,17 +437,6 @@ const HorizontalFeaturedCard = memo(function HorizontalFeaturedCard({
           </View>
         </Card>
       </Pressable>
-
-      {thumbnail && (
-        <ImageDialog
-          visible={imageModalVisible}
-          selectedImage={{
-            uri: thumbnail,
-            alt: displayTitle,
-          }}
-          onClose={() => setImageModalVisible(false)}
-        />
-      )}
     </Animated.View>
   );
 });

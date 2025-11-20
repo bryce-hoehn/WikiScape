@@ -18,7 +18,7 @@ export default function useArticleHtml(title: string) {
       return rawHtml;
     },
     enabled: !!title,
-    staleTime: 30 * 60 * 1000, // 30 minutes - HTML content rarely changes
+    staleTime: 60 * 60 * 1000, // 1 hour - HTML content rarely changes
     gcTime: 60 * 60 * 1000, // 1 hour - keep in cache longer
     retry: 1, // Only retry once for HTML content (large payload)
     refetchOnWindowFocus: false, // Don't refetch on focus

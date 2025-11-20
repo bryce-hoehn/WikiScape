@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { Text, TouchableRipple, useTheme } from 'react-native-paper';
 import { MOTION } from '../../constants/motion';
+import { SPACING } from '../../constants/spacing';
+import { TYPOGRAPHY } from '../../constants/typography';
 
 /**
  * Skip links for keyboard navigation accessibility
@@ -80,12 +82,12 @@ export default function SkipLinks() {
 
 const styles = StyleSheet.create({
   skipLink: {
-    padding: 12,
-    margin: 8,
-    borderRadius: 4,
+    padding: SPACING.md,
+    margin: SPACING.sm,
+    borderRadius: SPACING.xs,
   },
   skipLinkText: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.bodyMedium,
     fontWeight: '600',
   },
 });

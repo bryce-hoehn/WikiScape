@@ -18,6 +18,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LAYOUT } from '../../constants/layout';
 import { useReducedMotion } from '../../hooks';
+import ScrollToTopFAB from '../common/ScrollToTopFAB';
 
 interface ArticleToolbarProps {
   onZoomIn: () => void;
@@ -30,6 +31,7 @@ interface ArticleToolbarProps {
   currentFontSize?: number;
   visible?: boolean;
   fabVisible?: boolean; // Whether the FAB is visible (affects toolbar positioning)
+  scrollRef?: React.RefObject<any>; // ScrollView ref for FAB scroll-to-top functionality
 }
 
 export default function ArticleToolbar({
@@ -43,6 +45,7 @@ export default function ArticleToolbar({
   currentFontSize = 16,
   visible = true,
   fabVisible = false,
+  scrollRef,
 }: ArticleToolbarProps) {
   const theme = useTheme();
   const { reducedMotion } = useReducedMotion();
@@ -52,8 +55,6 @@ export default function ArticleToolbar({
   const [tocVisible, setTocVisible] = useState(false);
   const translateY = useSharedValue(0);
   const opacity = useSharedValue(1);
-  // Animated value for toolbar alignment: 0 = centered, 1 = left-aligned
-  // Only move left on smaller screens; keep centered on large screens
   const alignmentProgress = useSharedValue(fabVisible && !isLargeScreen ? 1 : 0);
 
   const openTOC = () => {
@@ -109,8 +110,6 @@ export default function ArticleToolbar({
     }
   }, [visible, translateY, opacity, reducedMotion]);
 
-  // Animate toolbar alignment based on FAB visibility
-  // Only move left on smaller screens; keep centered on large screens
   useEffect(() => {
     const targetValue = fabVisible && !isLargeScreen ? 1 : 0;
     if (reducedMotion) {
@@ -122,10 +121,11 @@ export default function ArticleToolbar({
     }
   }, [fabVisible, isLargeScreen, alignmentProgress, reducedMotion]);
 
+
   const fabWidth = 56;
   const bottomSpacing = Platform.select({
-    web: isLargeScreen ? 24 : 16,
-    default: 16,
+    web: isLargeScreen ? SPACING.lg : SPACING.base,
+    default: SPACING.base,
   });
   const fabRightSpacing = bottomSpacing;
   const spacingBetweenFabAndToolbar = SPACING.sm;
@@ -151,7 +151,7 @@ export default function ArticleToolbar({
       maxWidth,
       transform: [{ translateX }],
     };
-  });
+  }, [width, toolbarMaxWidth, toolbarLeftPadding, alignmentProgress]);
 
   return (
     <Animated.View 
@@ -161,13 +161,23 @@ export default function ArticleToolbar({
         { 
           pointerEvents: 'box-none' as any,
           bottom: toolbarBottom,
-          zIndex: 999,
-          alignItems: 'center', // Always center the container
+          zIndex: 1000,
+          alignItems: 'center',
           justifyContent: 'center',
+          overflow: 'visible' as any,
         }
       ]}
     >
-      <Animated.View style={toolbarAnimatedStyle}>
+      <Animated.View 
+        style={[
+          toolbarAnimatedStyle, 
+          { 
+            pointerEvents: 'auto' as any,
+            overflow: 'visible' as any,
+            zIndex: 1001,
+          }
+        ]}
+      >
       <Surface
           elevation={1}
         style={[
@@ -175,6 +185,7 @@ export default function ArticleToolbar({
           {
               backgroundColor: theme.colors.elevation.level3,
               borderRadius: theme.roundness * 7,
+              zIndex: 1001,
           },
         ]}
       >
@@ -216,16 +227,39 @@ export default function ArticleToolbar({
           accessibilityHint={`Increases article font size. Current size: ${currentFontSize}px`}
         />
 
-        <IconButton
-          icon="format-list-bulleted"
-          size={24}
-          iconColor={theme.colors.onSurfaceVariant}
-          onPress={openTOC}
-          accessibilityLabel="Table of contents"
-          accessibilityHint="Opens table of contents to navigate article sections"
-        />
+        <View style={{ zIndex: 1002, position: 'relative' }}>
+          <IconButton
+            icon="format-list-bulleted"
+            size={24}
+            iconColor={theme.colors.onSurfaceVariant}
+            onPress={openTOC}
+            accessibilityLabel="Table of contents"
+            accessibilityHint="Opens table of contents to navigate article sections"
+          />
+        </View>
       </Surface>
       </Animated.View>
+
+      {/* FAB positioned within toolbar container for coordinated touch handling */}
+      {scrollRef && (
+        <View 
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            right: bottomSpacing,
+            zIndex: 998, // Lower than toolbar (1001) so toolbar buttons receive touches first
+            width: 56, // FAB standard size
+            height: 56, // FAB standard size
+          }}
+        >
+          <ScrollToTopFAB 
+            scrollRef={scrollRef} 
+            visible={fabVisible} 
+            hasBottomTabBar={false}
+            containerPositioned={true}
+          />
+        </View>
+      )}
 
       <Portal>
         <Modal
@@ -288,6 +322,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
     minHeight: 56,
     height: 56,
+    overflow: 'visible',
   },
   modalContent: {
     width: '90%',
