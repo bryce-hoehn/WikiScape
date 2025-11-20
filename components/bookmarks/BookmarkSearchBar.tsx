@@ -25,12 +25,9 @@ export default function BookmarkSearchBar({ searchQuery, onSearchChange }: Bookm
         style={[
           styles.searchbar,
           {
-            // MD3: elevation.level1 for search bars
-            elevation: Platform.select({ android: 1, ios: 0, web: 1 }),
-            backgroundColor: theme.colors.elevation.level1,
-            // MD3: corner.medium (12dp) for search bars
+            elevation: Platform.select({ android: 2, ios: 0, web: 2 }),
+            backgroundColor: theme.colors.surfaceVariant,
             borderRadius: theme.roundness * 3,
-            // MD3: Ensure 56dp height for search bars
             minHeight: 56,
             height: 56,
           },

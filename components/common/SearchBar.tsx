@@ -146,9 +146,9 @@ export default function SearchBar({
   };
 
   // MD3 styling - per https://m3.material.io/components/search/specs
-  // Elevation: level1 for standard search bars (level2 was too high)
-  const elevation = headerStyle ? 0 : Platform.select({ android: 1, ios: 0, web: 1 });
-  const backgroundColor = headerStyle ? 'transparent' : theme.colors.elevation.level1;
+  // Use surfaceVariant background and elevation 2 for better prominence
+  const elevation = Platform.select({ android: 2, ios: 0, web: 2 });
+  const backgroundColor = theme.colors.surfaceVariant;
   const shouldShowWebMenu = Platform.OS === 'web' && showWebMenu && !disableOverlay;
 
   // Web: Prepare suggestions and recent articles
@@ -194,9 +194,7 @@ export default function SearchBar({
           style={{
             elevation,
             backgroundColor,
-            // MD3: corner.medium (12dp) for search bars - per https://m3.material.io/components/search/specs
-            borderRadius: headerStyle ? 0 : theme.roundness * 3,
-            // MD3: Ensure 56dp height for search bars - per https://m3.material.io/components/search/specs
+            borderRadius: theme.roundness * 3,
             minHeight: 56,
             height: 56,
           }}
