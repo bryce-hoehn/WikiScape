@@ -47,10 +47,8 @@ export default function Root({ children }: PropsWithChildren) {
             __html: `
             html {
               scroll-behavior: smooth;
-              background-color: #111318 !important;
             }
             body {
-              background-color: #111318 !important;
               margin: 0;
               padding: 0;
               /* Hide scrollbar for Firefox */
@@ -63,7 +61,6 @@ export default function Root({ children }: PropsWithChildren) {
               display: none;
             }
             #root {
-              background-color: #111318 !important;
               min-height: 100vh;
               /* Hide scrollbar for Firefox */
               scrollbar-width: none;
@@ -77,10 +74,6 @@ export default function Root({ children }: PropsWithChildren) {
             /* Ensure all potential white backgrounds are overridden */
             * {
               scroll-behavior: smooth;
-            }
-            /* Override any default white backgrounds from React Navigation/Expo Router */
-            [data-reactroot], [data-reactroot] > * {
-              background-color: #111318 !important;
             }
             /* Hide scrollbars on all scrollable elements */
             * {
@@ -96,21 +89,62 @@ export default function Root({ children }: PropsWithChildren) {
           `,
           }}
         />
-        {/* Set initial background immediately - use dark theme by default to prevent white flash */}
+        {/* Set initial background immediately based on user's theme preference */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
             (function() {
-              // Set dark background immediately to prevent any white flash
-              const bgColor = '#111318';
+              // Determine background color based on theme preference
+              function getInitialBackgroundColor() {
+                try {
+                  // Check localStorage for saved theme preference
+                  const savedTheme = localStorage.getItem('wikipediaexpo_theme_preference');
+                  
+                  // Theme color mappings
+                  const themeColors = {
+                    'light': '#F9F9FF',
+                    'light-medium-contrast': '#F9F9FF',
+                    'light-high-contrast': '#F9F9FF',
+                    'dark': '#111318',
+                    'dark-medium-contrast': '#111318',
+                    'dark-high-contrast': '#111318',
+                    'papyrus': '#F5E6D3'
+                  };
+                  
+                  if (savedTheme && themeColors[savedTheme]) {
+                    return themeColors[savedTheme];
+                  }
+                  
+                  // If automatic or no preference, check system preference
+                  if (!savedTheme || savedTheme === 'automatic') {
+                    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                      return '#111318'; // Dark theme
+                    }
+                    return '#F9F9FF'; // Light theme (default)
+                  }
+                  
+                  // Fallback to dark theme
+                  return '#111318';
+                } catch (e) {
+                  // If localStorage is not available, check system preference
+                  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    return '#111318';
+                  }
+                  return '#F9F9FF';
+                }
+              }
+              
+              const bgColor = getInitialBackgroundColor();
+              
+              // Set background color immediately
               document.documentElement.style.backgroundColor = bgColor;
               document.body.style.backgroundColor = bgColor;
               const root = document.getElementById('root');
               if (root) {
                 root.style.backgroundColor = bgColor;
-                // Also set as inline style with !important
-                root.setAttribute('style', root.getAttribute('style') + '; background-color: ' + bgColor + ' !important;');
+                root.setAttribute('style', (root.getAttribute('style') || '') + '; background-color: ' + bgColor + ' !important;');
               }
+              
               // Create a global style tag immediately to override everything
               let style = document.getElementById('initial-background-style');
               if (!style) {
