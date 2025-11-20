@@ -82,37 +82,62 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          BUILD_ID=$(eas build --platform android --profile production --non-interactive --no-wait --json | jq -r 'if type == "array" then .[0].id else .id end')
+          echo "Starting EAS build..."
+          BUILD_OUTPUT=$(eas build --platform android --profile production --non-interactive --no-wait --json 2>/dev/null)
+          BUILD_ID=$(echo "$BUILD_OUTPUT" | jq -r '.id // .[0].id' 2>/dev/null)
+          
           if [ "$BUILD_ID" = "null" ] || [ -z "$BUILD_ID" ]; then
+            echo "Failed to extract build ID:"
+            echo "$BUILD_OUTPUT"
             exit 1
           fi
+          
+          echo "Build ID: $BUILD_ID - Waiting for completion..."
+          
           MAX_WAIT=3600
+          NEW_STATUS_TIMEOUT=600
           ELAPSED=0
           NEW_STATUS_START=0
-          NEW_STATUS_TIMEOUT=600
+          LAST_STATUS=""
+          
           while [ $ELAPSED -lt $MAX_WAIT ]; do
-            STATUS=$(eas build:view $BUILD_ID --json | jq -r 'if type == "array" then .[0].status else .status end')
-            if [ "$STATUS" = "new" ]; then
-              if [ $NEW_STATUS_START -eq 0 ]; then
-                NEW_STATUS_START=$ELAPSED
-              fi
-              if [ $((ELAPSED - NEW_STATUS_START)) -ge $NEW_STATUS_TIMEOUT ]; then
-                exit 1
-              fi
-            else
-              NEW_STATUS_START=0
-            fi
-            if [ "$STATUS" = "finished" ]; then
-              break
-            elif [ "$STATUS" = "errored" ] || [ "$STATUS" = "canceled" ]; then
+            STATUS_OUTPUT=$(eas build:view $BUILD_ID --json 2>/dev/null)
+            STATUS=$(echo "$STATUS_OUTPUT" | jq -r '.status // .[0].status' 2>/dev/null)
+            
+            if [ -z "$STATUS" ] || [ "$STATUS" = "null" ]; then
+              echo "Failed to get build status. Output:"
+              echo "$STATUS_OUTPUT"
               exit 1
             fi
+            
+            [ "$STATUS" != "$LAST_STATUS" ] && echo "Status: $STATUS (${ELAPSED}s)" && LAST_STATUS="$STATUS"
+            
+            case "$STATUS" in
+              finished)
+                echo "Build completed!"
+                break
+                ;;
+              errored|canceled)
+                echo "Build failed: $STATUS"
+                exit 1
+                ;;
+              new)
+                [ $NEW_STATUS_START -eq 0 ] && NEW_STATUS_START=$ELAPSED
+                [ $((ELAPSED - NEW_STATUS_START)) -ge $NEW_STATUS_TIMEOUT ] && \
+                  echo "Stuck in 'new' status >${NEW_STATUS_TIMEOUT}s" && exit 1
+                ;;
+              *)
+                NEW_STATUS_START=0
+                ;;
+            esac
+            
             sleep 30
             ELAPSED=$((ELAPSED + 30))
           done
-          if [ $ELAPSED -ge $MAX_WAIT ]; then
-            exit 1
-          fi
+          
+          [ $ELAPSED -ge $MAX_WAIT ] && echo "Build timed out" && exit 1
+          
+          echo "Downloading build..."
           eas build:download $BUILD_ID --platform android --output ./WikiScroll-v${{ steps.bump_version.outputs.version }}-android.apk
 
       - name: Build Web
