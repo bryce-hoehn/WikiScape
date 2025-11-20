@@ -160,7 +160,8 @@ export default function HomeScreen() {
   // Call hook at component level, not inside renderTabBar
   const tabBarMarginTop = useCollapsibleHeaderSpacing(scrollY, HEADER_HEIGHT);
 
-  // Memoize renderTabBar to prevent unnecessary re-renders
+  const [tabBarWidth, setTabBarWidth] = useState<number>(windowWidth);
+
   const renderTabBar = useCallback(
     (
       props: SceneRendererProps & {
@@ -170,11 +171,6 @@ export default function HomeScreen() {
     ) => {
     const { routes, index } = props.navigationState;
     const { position } = props;
-
-    // Account for left gutter (88px) + drawer (360px) = 448px on large screens
-    const leftOffset = isLargeScreen ? 448 : 0;
-    const availableWidth = windowWidth - leftOffset - (isLargeScreen ? LAYOUT.SIDEBAR_WIDTH : 0);
-    const centeredMaxWidth = Math.min(containerWidth, availableWidth);
 
     return (
       <Animated.View
@@ -189,29 +185,25 @@ export default function HomeScreen() {
           style={{
             flexDirection: 'row',
             backgroundColor: theme.colors.surface,
-            // No border - MD3 recommends using elevation for navigation bars
-            // Separation is handled by background color contrast
-            paddingHorizontal: isLargeScreen ? 0 : 0,
             ...(isLargeScreen && {
-              maxWidth: centeredMaxWidth,
+              maxWidth: containerWidth,
               alignSelf: 'center',
             }),
           }}
-          // MD3 Accessibility: Tab list role for screen readers
-          // Reference: https://m3.material.io/components/tabs/accessibility
+          onLayout={(event) => {
+            const { width } = event.nativeEvent.layout;
+            if (width > 0) {
+              setTabBarWidth(width);
+            }
+          }}
           accessibilityRole="tablist"
           accessibilityLabel="Feed tabs"
         >
           {routes.map((route: Route, i: number) => {
             const focused = i === index;
-            // MD3: Active tab uses onSurface, inactive uses onSurfaceVariant
-            // Reference: https://m3.material.io/components/tabs/specs
             const color = focused ? theme.colors.onSurface : theme.colors.onSurfaceVariant;
-            // MD3: Active tab uses Medium weight (500), inactive uses Regular (400)
-            // Reference: https://m3.material.io/components/tabs/specs
             const fontWeight = focused ? '500' : '400';
 
-            // Animate text color and weight based on position for smooth transitions
             const inputRange = routes.map((_, j) => j);
             const opacity = position.interpolate({
               inputRange,
@@ -227,15 +219,11 @@ export default function HomeScreen() {
                   flex: 1,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  // MD3: Tab height must be exactly 48dp for text-only tabs
-                  // Reference: https://m3.material.io/components/tabs/specs
-                  height: SPACING.xxl, // 48dp
-                  minHeight: SPACING.xxl, // 48dp - ensures minimum touch target
-                  paddingHorizontal: SPACING.base, // 16dp horizontal padding
-                  minWidth: 120, // Ensure minimum width for touch target
+                  height: SPACING.xxl,
+                  minHeight: SPACING.xxl,
+                  paddingHorizontal: SPACING.base,
+                  minWidth: 120,
                 }}
-                // MD3 Accessibility: Proper tab role and state
-                // Reference: https://m3.material.io/components/tabs/accessibility
                 accessibilityRole="tab"
                 accessibilityLabel={route.title || `Tab ${i + 1}`}
                 accessibilityState={{ selected: focused }}
@@ -244,12 +232,10 @@ export default function HomeScreen() {
               >
                 <View style={{ alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
                   <Animated.Text
-                    // MD3: Use titleSmall (14sp) for tab labels
-                    // Reference: https://m3.material.io/components/tabs/specs
                     style={{
                       fontSize: TYPOGRAPHY.tabLabel,
                       fontWeight: fontWeight,
-                      lineHeight: 20, // Standard line height for 14sp
+                      lineHeight: 20,
                       color: color,
                       opacity: opacity,
                       textAlign: 'center',
@@ -261,12 +247,9 @@ export default function HomeScreen() {
               </TouchableRipple>
             );
           })}
-          
-          {/* Animated indicator that moves between tabs */}
           {(() => {
-            const tabBarWidth = centeredMaxWidth || windowWidth;
             const tabWidth = tabBarWidth / routes.length;
-            const indicatorWidth = tabWidth * 0.6; // 60% of tab width (20% margin on each side)
+            const indicatorWidth = tabWidth * 0.6;
             
             return (
               <Animated.View
@@ -274,16 +257,16 @@ export default function HomeScreen() {
                   position: 'absolute',
                   bottom: 0,
                   left: 0,
-                  height: 2, // 2dp per MD3 specification
+                  height: 2,
                   width: indicatorWidth,
                   backgroundColor: theme.colors.primary,
-                  borderRadius: 1, // 1dp radius for 2dp height indicator
+                  borderRadius: 1,
                   transform: [
                     {
                       translateX: position.interpolate({
                         inputRange: routes.map((_, i) => i),
                         outputRange: routes.map((_, i) => {
-                          const margin = (tabWidth - indicatorWidth) / 2; // Center the indicator
+                          const margin = (tabWidth - indicatorWidth) / 2;
                           return i * tabWidth + margin;
                         }),
                         extrapolate: 'clamp',
@@ -295,12 +278,11 @@ export default function HomeScreen() {
             );
           })()}
         </View>
-        {/* Divider between FeedBar and feed */}
         <Divider />
       </Animated.View>
     );
     },
-    [index, routes, isLargeScreen, windowWidth, containerWidth, theme, tabBarMarginTop, handleTabPress]
+    [index, routes, isLargeScreen, containerWidth, theme, tabBarMarginTop, handleTabPress, tabBarWidth]
   );
 
   return (
