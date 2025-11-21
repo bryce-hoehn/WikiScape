@@ -10,6 +10,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOTION } from '../../constants/motion';
 import { SPACING } from '../../constants/spacing';
 import { useReducedMotion } from '../../hooks';
@@ -34,6 +35,7 @@ export default function ImageDialog({
   const closeButtonRef = useRef<any>(null);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { reducedMotion } = useReducedMotion();
+  const insets = useSafeAreaInsets();
 
   // Determine if we have multiple images for navigation
   const imageArray = images && images.length > 0 ? images : selectedImage ? [selectedImage] : [];
@@ -395,6 +397,7 @@ export default function ImageDialog({
             top: 0,
             left: 0,
             right: 0,
+            paddingTop: insets.top,
             zIndex: 10,
           }}
           accessibilityRole="toolbar"
@@ -424,7 +427,7 @@ export default function ImageDialog({
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            paddingTop: 56,
+            paddingTop: 56 + insets.top,
           }}
         >
           {currentImage && (

@@ -1,7 +1,9 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { Snackbar } from 'react-native-paper';
-import { useWindowDimensions } from 'react-native';
 import { LAYOUT } from '@/constants/layout';
+import { SPACING } from '@/constants/spacing';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { Platform, useWindowDimensions } from 'react-native';
+import { Snackbar } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface SnackbarContextType {
   showSnackbar: (message: string, options?: SnackbarOptions) => void;
@@ -22,6 +24,7 @@ export const SnackbarContext = createContext<SnackbarContextType | undefined>(un
 
 export function SnackbarProvider({ children }: { children: React.ReactNode }) {
   const { width: windowWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState('');
   const [action, setAction] = useState<{ label: string; onPress: () => void } | undefined>();
@@ -83,13 +86,27 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }) {
 
   // M3: Width constraints for tablet/desktop (min 288dp, max 568dp)
   const isLargeScreen = windowWidth >= LAYOUT.DESKTOP_BREAKPOINT;
-  const snackbarStyle = isLargeScreen
-    ? {
-        minWidth: 288, // M3: Minimum 288dp for tablet/desktop
-        maxWidth: 568, // M3: Maximum 568dp for tablet/desktop
-        alignSelf: 'center' as const,
-      }
-    : undefined;
+  
+  // Calculate bottom offset to position snackbar above navigation bar
+  // On large screens, tab bar is hidden, so no offset needed
+  // On small screens, position above tab bar height with spacing
+  const tabBarHeight = isLargeScreen
+    ? 0
+    : SPACING.lg + (Platform.OS === 'web' ? SPACING.lg : insets.bottom);
+  
+  // Add spacing between snackbar and navigation bar (smaller spacing for better visual balance)
+  const bottomOffset = tabBarHeight + SPACING.sm;
+  
+  const snackbarStyle = {
+    ...(isLargeScreen
+      ? {
+          minWidth: 288, // M3: Minimum 288dp for tablet/desktop
+          maxWidth: 568, // M3: Maximum 568dp for tablet/desktop
+          alignSelf: 'center' as const,
+        }
+      : {}),
+    bottom: bottomOffset,
+  };
 
   return (
     <SnackbarContext.Provider value={value}>
@@ -100,9 +117,6 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }) {
         duration={duration}
         action={action}
         style={snackbarStyle}
-        // M3: Typography - message uses bodyMedium (14sp) by default in RNP
-        // M3: Action button uses Medium 14sp, all-caps (handled in showSnackbar)
-        // M3: Elevation level 3 (same as FAB) - RNP handles this by default
       >
         {message}
       </Snackbar>
