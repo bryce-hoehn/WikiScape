@@ -676,6 +676,41 @@ export function extractAllImages(html: string): Array<{ uri: string; alt?: strin
       // Type guard: ensure it's an Element with attribs
       if (!('attribs' in imgNode) || !('name' in imgNode) || !imgNode.attribs) continue;
       const imgElement = imgNode as unknown as Element;
+      
+      // Skip images inside UI elements (edit buttons, navigation, etc.)
+      let current: any = imgElement.parent;
+      let isUIElement = false;
+      while (current && current.attribs) {
+        const classes = current.attribs.class || '';
+        const classStr = typeof classes === 'string' ? classes : Array.isArray(classes) ? classes.join(' ') : '';
+        
+        // Check for UI element classes
+        if (
+          classStr.includes('mw-editsection') ||
+          classStr.includes('noprint') ||
+          classStr.includes('mw-ui-') ||
+          classStr.includes('navigation') ||
+          classStr.includes('navbox') ||
+          classStr.includes('catlinks') ||
+          classStr.includes('printfooter') ||
+          classStr.includes('portal') ||
+          classStr.includes('sidebar') ||
+          classStr.includes('hatnote') ||
+          classStr.includes('mw-logo') ||
+          classStr.includes('central-featured') ||
+          classStr.includes('ambox') ||
+          classStr.includes('dablink')
+        ) {
+          isUIElement = true;
+          break;
+        }
+        current = current.parent;
+      }
+      
+      if (isUIElement) {
+        continue;
+      }
+      
       const attrs = imgElement.attribs;
 
       // Get raw source (same logic as ImageRenderer)
@@ -697,6 +732,37 @@ export function extractAllImages(html: string): Array<{ uri: string; alt?: strin
 
       const rawSrc = getRawSrcFull();
       if (!rawSrc || isInvalidImageSrc(rawSrc)) {
+        continue;
+      }
+      
+      // Check image URL for logo/icon patterns
+      const imageUrlLower = rawSrc.toLowerCase();
+      
+      // Skip logos, icons, and small decorative images
+      if (
+        imageUrlLower.includes('logo') ||
+        imageUrlLower.includes('icon') ||
+        imageUrlLower.includes('commons-logo') ||
+        imageUrlLower.includes('wikimedia-logo') ||
+        imageUrlLower.includes('wikimediafoundation') ||
+        imageUrlLower.includes('wikimedia-') ||
+        imageUrlLower.includes('wikiquote') ||
+        imageUrlLower.includes('wiktionary') ||
+        imageUrlLower.includes('wikibooks') ||
+        imageUrlLower.includes('wikisource') ||
+        imageUrlLower.includes('wikinews') ||
+        imageUrlLower.includes('wikiversity') ||
+        imageUrlLower.includes('wikidata') ||
+        imageUrlLower.includes('wikivoyage') ||
+        imageUrlLower.includes('wikimedia-commons')
+      ) {
+        continue;
+      }
+      
+      // Check image dimensions - skip very small images (likely icons/logos)
+      const width = parseInt(attrs.width || '0', 10);
+      const height = parseInt(attrs.height || '0', 10);
+      if (width > 0 && height > 0 && (width < 50 || height < 50)) {
         continue;
       }
 

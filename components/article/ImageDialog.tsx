@@ -1,9 +1,10 @@
 import { Image } from 'expo-image';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Appbar, IconButton, useTheme } from 'react-native-paper';
 import Animated, {
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -69,8 +70,77 @@ export default function ImageDialog({
     }
   }, [visible, images, initialIndex]);
 
-  // Get current image
+  // Helper function to convert thumbnail URL to full-size image URL
+  const getFullSizeImageUrl = useCallback((url: string): string => {
+    if (!url || !url.includes('upload.wikimedia.org')) {
+      return url;
+    }
+
+    try {
+      // Check if it's a thumbnail URL (contains /thumb/)
+      if (url.includes('/thumb/')) {
+        // Pattern: .../thumb/{hash}/{filename}/{width}px-{filename}
+        // We want: .../{hash}/{filename}
+        
+        const urlObj = new URL(url);
+        const pathParts = urlObj.pathname.split('/').filter(Boolean);
+        
+        const thumbIndex = pathParts.findIndex((part: string) => part === 'thumb');
+        if (thumbIndex !== -1) {
+          // Remove 'thumb' segment
+          pathParts.splice(thumbIndex, 1);
+          
+          // Remove the last part if it's a size-prefixed filename (e.g., "220px-filename.jpg")
+          const lastPart = pathParts[pathParts.length - 1];
+          if (lastPart && lastPart.match(/^\d+px-/)) {
+            pathParts.pop();
+          }
+          
+          // Reconstruct URL without /thumb/ and size prefix
+          urlObj.pathname = '/' + pathParts.join('/');
+          return urlObj.toString();
+        }
+      }
+      
+      return url;
+    } catch (error) {
+      // If URL parsing fails, return original
+      return url;
+    }
+  }, []);
+
+  // Get current image with full-size URL
   const currentImage = imageArray[currentIndex] || null;
+  const fullSizeImageUri = currentImage ? getFullSizeImageUrl(currentImage.uri) : null;
+
+  // Track actual image dimensions for background sizing
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const loadedImageUriRef = useRef<string | null>(null);
+
+  // Reset dimensions when image changes
+  useEffect(() => {
+    setImageDimensions(null);
+    loadedImageUriRef.current = null;
+  }, [fullSizeImageUri]);
+
+  // Memoize onLoad handler to prevent infinite loops
+  const handleImageLoad = useCallback((event: any) => {
+    // Only set dimensions if we haven't already loaded this image
+    if (loadedImageUriRef.current === fullSizeImageUri) {
+      return;
+    }
+
+    // Get natural image dimensions from the load event
+    const source = event.source;
+    if (source && 'width' in source && 'height' in source) {
+      const width = source.width as number;
+      const height = source.height as number;
+      if (width > 0 && height > 0) {
+        loadedImageUriRef.current = fullSizeImageUri || null;
+        setImageDimensions({ width, height });
+      }
+    }
+  }, [fullSizeImageUri]);
 
   // Pinch-to-zoom state
   const scale = useSharedValue(1);
@@ -97,7 +167,7 @@ export default function ImageDialog({
   }, [currentIndex, imageArray.length]);
 
   // Navigation functions
-  const goToPrevious = () => {
+  const goToPrevious = useCallback(() => {
     if (hasMultipleImages && currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
       // Reset zoom when changing images
@@ -108,9 +178,9 @@ export default function ImageDialog({
       savedTranslateX.value = 0;
       savedTranslateY.value = 0;
     }
-  };
+  }, [hasMultipleImages, currentIndex]);
 
-  const goToNext = () => {
+  const goToNext = useCallback(() => {
     if (hasMultipleImages && currentIndex < imageArray.length - 1) {
       setCurrentIndex(currentIndex + 1);
       // Reset zoom when changing images
@@ -121,21 +191,32 @@ export default function ImageDialog({
       savedTranslateX.value = 0;
       savedTranslateY.value = 0;
     }
-  };
+  }, [hasMultipleImages, currentIndex, imageArray.length]);
 
-  // Effect to handle navigation triggered from gesture worklet
+  // Store navigation callbacks in refs for worklet access
+  const goToPreviousRef = useRef(goToPrevious);
+  const goToNextRef = useRef(goToNext);
+  
   useEffect(() => {
-    if (navigationDirection.value !== 0) {
-      const direction = navigationDirection.value;
-      navigationDirection.value = 0; // Reset
+    goToPreviousRef.current = goToPrevious;
+    goToNextRef.current = goToNext;
+  }, [goToPrevious, goToNext]);
 
-      if (direction === -1) {
-        goToPrevious();
-      } else if (direction === 1) {
-        goToNext();
+  // Handle navigation triggered from gesture worklet
+  useAnimatedReaction(
+    () => navigationDirection.value,
+    (direction) => {
+      'worklet';
+      if (direction !== 0) {
+        navigationDirection.value = 0; // Reset
+        if (direction === -1) {
+          goToPreviousRef.current();
+        } else if (direction === 1) {
+          goToNextRef.current();
+        }
       }
     }
-  }, [navigationDirection.value]);
+  );
 
   // Reset zoom and swipe when modal closes or image changes
   useEffect(() => {
@@ -147,6 +228,7 @@ export default function ImageDialog({
       savedTranslateX.value = 0;
       savedTranslateY.value = 0;
       swipeTranslateX.value = 0;
+      setImageDimensions(null);
     }
   }, [visible, currentIndex]);
 
@@ -305,25 +387,23 @@ export default function ImageDialog({
       accessible={true}
       accessibilityLabel="Image modal"
     >
-      <View
-        style={{ flex: 1, backgroundColor: theme.colors.scrim + 'E6' }} // 90% opacity (0xE6 in hex = 230/255 ≈ 0.9)
-        // Remove accessible prop to prevent semantic HTML wrapper that might conflict with Appbar.Content h1
-      >
+      <View style={{ flex: 1, backgroundColor: theme.colors.scrim + 'E6' }}>
         <Appbar.Header
           style={{
             backgroundColor: 'transparent',
-            marginTop: 0,
-            paddingTop: 0,
-            elevation: 0,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 10,
           }}
           accessibilityRole="toolbar"
-          // Remove accessible prop - Appbar.Header handles its own accessibility
         >
           <Appbar.Action
             ref={closeButtonRef}
             icon="close"
             onPress={onClose}
-            color={theme.colors.surface}
+            color="#FFFFFF"
             accessible={true}
             accessibilityLabel="Close image modal"
             accessibilityRole="button"
@@ -335,8 +415,7 @@ export default function ImageDialog({
                 ? `${currentImage?.alt || 'Image'} (${currentIndex + 1} of ${imageArray.length})`
                 : currentImage?.alt || 'Image'
             }
-            titleStyle={{ color: theme.colors.surface }}
-            // Appbar.Content already renders as h1 on web, don't add header role
+            titleStyle={{ color: '#FFFFFF' }}
           />
         </Appbar.Header>
 
@@ -345,7 +424,7 @@ export default function ImageDialog({
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            marginTop: -56, // Compensate for Appbar height
+            paddingTop: 56,
           }}
         >
           {currentImage && (
@@ -362,22 +441,52 @@ export default function ImageDialog({
                 ]}
               >
                 <Animated.View style={imageAnimatedStyle}>
-                  <Image
-                    source={{ uri: currentImage.uri }}
+                  <View
                     style={{
-                      width: windowWidth,
-                      height: windowHeight * 0.8,
+                      backgroundColor: theme.colors.surfaceVariant,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      alignSelf: 'center',
+                      opacity: imageDimensions ? 1 : 0,
+                      ...(imageDimensions
+                        ? (() => {
+                            const maxWidth = windowWidth;
+                            const maxHeight = windowHeight * 0.8;
+                            const aspectRatio = imageDimensions.width / imageDimensions.height;
+                            let width = maxWidth;
+                            let height = maxWidth / aspectRatio;
+                            
+                            if (height > maxHeight) {
+                              height = maxHeight;
+                              width = maxHeight * aspectRatio;
+                            }
+                            
+                            return { width, height };
+                          })()
+                        : {
+                            width: 0,
+                            height: 0,
+                          }),
                     }}
-                    contentFit="contain"
-                    accessible={true}
-                    accessibilityLabel={currentImage.alt || 'Article image'}
-                    accessibilityRole="image"
-                    accessibilityHint={
-                      hasMultipleImages
-                        ? 'Pinch to zoom, double tap to zoom in/out, drag to pan when zoomed, swipe left/right to navigate'
-                        : 'Pinch to zoom, double tap to zoom in/out, drag to pan when zoomed'
-                    }
-                  />
+                  >
+                    <Image
+                      source={{ uri: fullSizeImageUri || currentImage.uri }}
+                      style={{
+                        width: windowWidth,
+                        height: windowHeight * 0.8,
+                      }}
+                      contentFit="contain"
+                      onLoad={handleImageLoad}
+                      accessible={true}
+                      accessibilityLabel={currentImage.alt || 'Article image'}
+                      accessibilityRole="image"
+                      accessibilityHint={
+                        hasMultipleImages
+                          ? 'Pinch to zoom, double tap to zoom in/out, drag to pan when zoomed, swipe left/right to navigate'
+                          : 'Pinch to zoom, double tap to zoom in/out, drag to pan when zoomed'
+                      }
+                    />
+                  </View>
                 </Animated.View>
               </Animated.View>
             </GestureDetector>
@@ -390,7 +499,6 @@ export default function ImageDialog({
               left: 0,
               right: 0,
               bottom: 0,
-              zIndex: 1,
             }}
             pointerEvents="box-none"
           >
@@ -417,12 +525,12 @@ export default function ImageDialog({
               {currentIndex > 0 && (
                 <IconButton
                   icon="chevron-left"
-                  iconColor={theme.colors.surface}
+                  iconColor={theme.colors.onSurface}
                   size={40}
                   style={{
                     position: 'absolute',
                     left: SPACING.base,
-                    backgroundColor: theme.colors.scrim + 'CC', // 80% opacity
+                    backgroundColor: theme.colors.surface + 'E6', // 90% opacity
                     zIndex: 10,
                   }}
                   onPress={goToPrevious}
@@ -434,12 +542,12 @@ export default function ImageDialog({
               {currentIndex < imageArray.length - 1 && (
                 <IconButton
                   icon="chevron-right"
-                  iconColor={theme.colors.surface}
+                  iconColor={theme.colors.onSurface}
                   size={40}
                   style={{
                     position: 'absolute',
                     right: SPACING.base,
-                    backgroundColor: theme.colors.scrim + 'CC', // 80% opacity
+                    backgroundColor: theme.colors.surface + 'E6', // 90% opacity
                     zIndex: 10,
                   }}
                   onPress={goToNext}
