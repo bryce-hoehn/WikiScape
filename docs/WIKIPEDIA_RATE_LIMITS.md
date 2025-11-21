@@ -6,12 +6,14 @@ This document outlines the rate limits and best practices for Wikipedia's variou
 
 ## API Endpoints Used
 
-1. **REST API** (`en.wikipedia.org/api/rest_v1/`) - Article summaries, HTML, thumbnails, descriptions, random articles
-2. **Action API** (`en.wikipedia.org/w/api.php`) - Search suggestions, categories, article links, backlinks
+1. **REST API** (`en.wikipedia.org/api/rest_v1/`) - Article summaries (single), HTML, thumbnails, descriptions, random articles
+2. **Action API** (`en.wikipedia.org/w/api.php`) - Search suggestions, categories, article links, backlinks, **batched article summaries** (up to 50 per request)
 3. **Wikimedia API** (`api.wikimedia.org`) - Featured content
 4. **Pageviews API** (`wikimedia.org/api/rest_v1`) - Trending articles
 5. **Media API** (`upload.wikimedia.org`) - Images and media files (CDN, not an API)
 6. **Commons Action API** (`commons.wikimedia.org/w/api.php`) - Media file lookups
+
+**Note on Batching**: The Action API is used for batched operations (article summaries, links, backlinks) where multiple items can be requested in a single API call using pipe-separated titles.
 
 ## Rate Limits by API
 
@@ -36,9 +38,9 @@ This document outlines the rate limits and best practices for Wikipedia's variou
 
 **Source**: [Robot Policy - REST API](https://wikitech.wikimedia.org/wiki/Robot_policy) (referenced by Foundation API Usage Guidelines)
 
-**Used for**: Article summaries, HTML content, thumbnails, descriptions, random articles, featured content, trending articles
+**Used for**: Article summaries (single requests), HTML content, thumbnails, descriptions, random articles, featured content, trending articles
 
-**Current Implementation**: Uses `restAxiosInstance` with 10 req/sec limit and up to 5 concurrent requests
+**Current Implementation**: Uses `restAxiosInstance` with 10 req/sec limit and up to 5 concurrent requests. Single article summary requests use this instance, while batched article summaries use the Action API.
 
 ### Action API (`en.wikipedia.org/w/api.php`)
 
@@ -49,9 +51,9 @@ This document outlines the rate limits and best practices for Wikipedia's variou
 
 **Source**: [Robot Policy - Action API](https://wikitech.wikimedia.org/wiki/Robot_policy) (referenced by Foundation API Usage Guidelines)
 
-**Used for**: Search suggestions, category pages, article links, backlinks, article categories
+**Used for**: Search suggestions, category pages, article links, backlinks, article categories, **batched article summaries** (up to 50 titles per request)
 
-**Current Implementation**: Uses `actionAxiosInstance` with 5 req/sec limit, sequential (1 at a time)
+**Current Implementation**: Uses `actionAxiosInstance` with 5 req/sec limit, sequential (1 at a time). Batching functions (`fetchArticleSummaries`, `fetchArticleLinksBatch`, `fetchArticleBacklinksBatch`) automatically combine multiple titles into single requests using pipe separators (up to 50 titles per request).
 
 ### Pageviews API (`wikimedia.org/api/rest_v1`)
 
@@ -63,7 +65,7 @@ This document outlines the rate limits and best practices for Wikipedia's variou
 
 **Used for**: Trending articles
 
-**Current Implementation**: Uses `actionAxiosInstance` to ensure serial requests (complies with "wait for each request to finish" requirement). Tries to fetch current date first, falls back to previous day if unavailable, then uses cached data. Retries every 15 minutes until successful (no rate limit on Pageviews API). Once successful, stops retrying until midnight UTC.
+**Current Implementation**: Uses `actionAxiosInstance` to ensure serial requests (complies with "wait for each request to finish" requirement). Tries to fetch current date first, falls back to previous day if unavailable, then uses cached data. Retries every 15 minutes until successful (no rate limit on Pageviews API). Once successful, stops retrying until midnight UTC. This is a single-request operation (not batched).
 
 ### Commons Action API (`commons.wikimedia.org/w/api.php`)
 
@@ -75,6 +77,8 @@ This document outlines the rate limits and best practices for Wikipedia's variou
 **Source**: [Robot Policy - Action API](https://wikitech.wikimedia.org/wiki/Robot_policy) (referenced by Foundation API Usage Guidelines) (same as main Action API)
 
 **Used for**: Media file lookups and metadata
+
+**Current Implementation**: Uses `actionAxiosInstance` with 5 req/sec limit, sequential (1 at a time). Single-request operations (not batched).
 
 ## Best Practices
 
@@ -133,7 +137,26 @@ These best practices come from the [Wikimedia Foundation API Usage Guidelines](h
 **Current Status**:
 
 - ✅ Using GZip compression: `Accept-Encoding: gzip, deflate` header is set on non-web platforms (browsers handle this automatically on web)
-- ✅ Batching Action API requests with pipe characters (`|`): `fetchArticleLinksBatch` and `fetchArticleBacklinksBatch` batch multiple titles in single API calls (used in recommendation algorithm)
+- ✅ Batching implemented: Multiple functions use batching to combine multiple requests into single API calls using pipe-separated titles
+
+#### Batching Implementation
+
+WikiScroll implements batching for several API functions:
+
+**Batch Functions**:
+
+- `fetchArticleSummaries(titles: string[])` - Batches up to 50 article titles per request using Action API's `titles` parameter with pipe separator
+- `fetchArticleLinksBatch(titles: string[])` - Batches up to 50 article titles per request for fetching forward links
+- `fetchArticleBacklinksBatch(titles: string[])` - Batches up to 50 article titles per request for fetching backlinks
+- `fetchCategoryPages(categoryTitle: string)` - Internally batches article summary requests (up to 50 per batch) when fetching category members
+
+**How Batching Works**:
+
+1. **Automatic Splitting**: Large arrays are automatically split into batches of 50 items
+2. **Sequential Processing**: Batches are processed sequentially to comply with rate limits
+3. **Error Isolation**: If one batch fails, other batches continue processing
+4. **Title Normalization**: All titles are automatically normalized and redirects are handled
+5. **Pipe Separator**: Uses Wikipedia's pipe character (`|`) to combine multiple titles: `titles=PageA|PageB|PageC`
 
 ### 7. Overall Limits
 
@@ -185,8 +208,10 @@ WikiScroll uses **two separate Axios instances** with different rate limits opti
 
 **Used for**:
 
-- REST API (`en.wikipedia.org/api/rest_v1`) - Article summaries, HTML, thumbnails, descriptions, random articles
+- REST API (`en.wikipedia.org/api/rest_v1`) - Single article summaries, HTML, thumbnails, descriptions, random articles
 - Featured Content API (`api.wikimedia.org`) - Featured content (fetched once per day)
+
+**Note**: Single article summary requests use the REST API. For multiple articles, use `fetchArticleSummaries()` which uses the Action API with batching.
 
 **Compliance**:
 
@@ -204,14 +229,31 @@ WikiScroll uses **two separate Axios instances** with different rate limits opti
 
 **Used for**:
 
-- Action API (`en.wikipedia.org/w/api.php`) - Search, links, backlinks, categories, category members
+- Action API (`en.wikipedia.org/w/api.php`) - Search, links, backlinks, categories, category members, **batched article summaries**
 - Commons Action API (`commons.wikimedia.org/w/api.php`) - Media file lookups
 - Pageviews API (`wikimedia.org/api/rest_v1`) - Trending articles (fetched once per day, ensures serial requests)
+
+**Batching Functions** (all use Action API with pipe-separated titles):
+
+- `fetchArticleSummaries(titles: string[])` - Batches up to 50 article titles per request for summaries, extracts, thumbnails, and descriptions
+- `fetchArticleLinksBatch(titles: string[])` - Batches up to 50 article titles per request for forward links
+- `fetchArticleBacklinksBatch(titles: string[])` - Batches up to 50 article titles per request for backlinks
+- `fetchCategoryPages(categoryTitle: string)` - Internally batches article summary requests (up to 50 per batch) when fetching category members
+
+**How Batching Works**:
+
+- Automatically splits large arrays into batches of 50 items
+- Uses pipe separator (`|`) to combine titles: `titles=PageA|PageB|PageC`
+- Processes batches sequentially to comply with rate limits
+- Handles title normalization and redirects automatically
+- Failed batches don't prevent other batches from processing
 
 **Compliance**:
 
 - ✅ Well under Action API's 5 req/sec limit (matches limit exactly)
 - ✅ Follows Action API's sequential requirement (1 concurrent)
+- ✅ Batching functions combine multiple titles into single requests (up to 50 per request)
+- ✅ Complies with Robot Policy recommendation to use pipe characters for multiple titles
 
 ### Shared Features
 
