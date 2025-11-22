@@ -1,100 +1,97 @@
 {
-  "expo": {
-    "name": "WikiScroll",
-    "slug": "wikiscroll",
-    "version": "0.3.0",
-    "description": "A modern, cross-platform Wikipedia reader built with React Native and Expo.",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "wikiscroll",
-    "primaryColor": "#000000",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "githubUrl": "https://github.com/bryce-hoehn/WikiScroll",
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.brycehoehn.WikiScroll",
-      "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": false,
-          "NSExceptionDomains": {
-            "wikipedia.org": {
-              "NSExceptionAllowsInsecureHTTPLoads": false,
-              "NSIncludesSubdomains": true
-            },
-            "wikimedia.org": {
-              "NSExceptionAllowsInsecureHTTPLoads": false,
-              "NSIncludesSubdomains": true
-            }
-          }
-        },
-        "UIBackgroundModes": []
-      },
-      "config": {
-        "usesNonExemptEncryption": false
-      }
-    },
-    "android": {
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": true,
-      "package": "com.brycehoehn.WikiScroll",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "permissions": []
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/scroll.png",
-      "bundler": "metro",
-      "name": "WikiScroll",
-      "shortName": "WikiScroll",
-      "lang": "en",
-      "scope": "/",
-      "themeColor": "#000000",
-      "backgroundColor": "#ffffff",
-      "display": "standalone",
-      "orientation": "portrait",
-      "startUrl": "/"
-    },
-    "plugins": [
-      [
-        "expo-router"
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
+  "name": "WikiScroll",
+  "slug": "wikiscroll",
+  "version": "0.3.0",
+  "description": "A modern, cross-platform Wikipedia reader built with React Native and Expo.",
+  "orientation": "portrait",
+  "icon": "./assets/images/icon.png",
+  "scheme": "wikiscroll",
+  "primaryColor": "#000000",
+  "userInterfaceStyle": "automatic",
+  "newArchEnabled": true,
+  "githubUrl": "https://github.com/bryce-hoehn/WikiScroll",
+  "ios": {
+    "supportsTablet": true,
+    "bundleIdentifier": "com.brycehoehn.WikiScroll",
+    "infoPlist": {
+      "NSAppTransportSecurity": {
+        "NSAllowsArbitraryLoads": false,
+        "NSExceptionDomains": {
+          "wikipedia.org": {
+            "NSExceptionAllowsInsecureHTTPLoads": false,
+            "NSIncludesSubdomains": true
+          },
+          "wikimedia.org": {
+            "NSExceptionAllowsInsecureHTTPLoads": false,
+            "NSIncludesSubdomains": true
           }
         }
-      ],
-      "expo-web-browser",
-      "expo-localization",
-      "expo-font",
-      "expo-asset",
-      "expo-av",
-      "expo-video"
-    ],
-    "experiments": {
-      "typedRoutes": true
+      },
+      "UIBackgroundModes": []
     },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "544f5bef-88e1-4990-96da-18d922ed21df"
-      }
-    },
-    "owner": "17hoehbr",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "sdkVersion": "54.0.0"
+    "config": {
+      "usesNonExemptEncryption": false
+    }
   },
-  "name": "wikiscroll"
+  "android": {
+    "edgeToEdgeEnabled": true,
+    "predictiveBackGestureEnabled": true,
+    "package": "com.brycehoehn.WikiScroll",
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/images/icon.png",
+      "backgroundColor": "#ffffff"
+    },
+    "permissions": []
+  },
+  "web": {
+    "output": "static",
+    "favicon": "./assets/images/scroll.png",
+    "bundler": "metro",
+    "name": "WikiScroll",
+    "shortName": "WikiScroll",
+    "lang": "en",
+    "scope": "/",
+    "themeColor": "#000000",
+    "backgroundColor": "#ffffff",
+    "display": "standalone",
+    "orientation": "portrait",
+    "startUrl": "/"
+  },
+  "plugins": [
+    [
+      "expo-router"
+    ],
+    [
+      "expo-splash-screen",
+      {
+        "image": "./assets/images/icon.png",
+        "imageWidth": 200,
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff",
+        "dark": {
+          "backgroundColor": "#000000"
+        }
+      }
+    ],
+    "expo-web-browser",
+    "expo-localization",
+    "expo-font",
+    "expo-asset",
+    "expo-av",
+    "expo-video"
+  ],
+  "experiments": {
+    "typedRoutes": true
+  },
+  "extra": {
+    "router": {},
+    "eas": {
+      "projectId": "544f5bef-88e1-4990-96da-18d922ed21df"
+    }
+  },
+  "owner": "17hoehbr",
+  "runtimeVersion": {
+    "policy": "appVersion"
+  },
+  "sdkVersion": "54.0.0"
 }
