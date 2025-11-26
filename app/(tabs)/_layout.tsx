@@ -2,12 +2,12 @@ import SkipLinks from '@/components/common/SkipLinks';
 import AppSidebar from '@/components/layout/AppSidebar';
 import ContentWithSidebar from '@/components/layout/ContentWithSidebar';
 import SharedDrawer from '@/components/layout/SharedDrawer';
-import { LAYOUT, COMPONENT_HEIGHTS } from '@/constants/layout';
+import { COMPONENT_HEIGHTS, LAYOUT } from '@/constants/layout';
 import { SPACING } from '@/constants/spacing';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform, useWindowDimensions } from 'react-native';
+import { Platform, View, useWindowDimensions } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -27,34 +27,41 @@ export default function TabLayout() {
       <SkipLinks />
       <ContentWithSidebar sidebar={<AppSidebar />}>
         <SharedDrawer>
-          <Tabs
-            screenOptions={{
-              ...commonScreenOptions,
-              tabBarActiveTintColor: theme.colors.primary,
-              tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-              // Hide tab bar on large screens (drawer handles navigation)
-              tabBarStyle: isLargeScreen
-                ? {
-                    display: 'none',
-                    height: 0,
-                  }
-                : {
-                    backgroundColor: theme.colors.surface,
-                    borderTopWidth: 0,
-                    // Add safe area padding for iOS PWA home indicator
-                    paddingBottom: Platform.OS === 'web' ? Math.max(insets.bottom, SPACING.sm) : insets.bottom,
-                    height: COMPONENT_HEIGHTS.STANDARD + (Platform.OS === 'web' ? Math.max(insets.bottom, SPACING.sm) : insets.bottom),
-                    // Ensure tab bar is visible and positioned correctly on web mobile browsers
-                    ...(Platform.OS === 'web' && {
-                      position: 'fixed' as any,
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      zIndex: 1000,
-                    }),
-                  },
-            }}
+          <View
+            {...(!isLargeScreen && {
+              accessibilityRole: 'navigation' as any,
+              accessibilityLabel: 'Tab navigation',
+            })}
+            style={{ flex: 1 }}
           >
+            <Tabs
+              screenOptions={{
+                ...commonScreenOptions,
+                tabBarActiveTintColor: theme.colors.primary,
+                tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
+                // Hide tab bar on large screens (drawer handles navigation)
+                tabBarStyle: isLargeScreen
+                  ? {
+                      display: 'none',
+                      height: 0,
+                    }
+                  : {
+                      backgroundColor: theme.colors.surface,
+                      borderTopWidth: 0,
+                      // Add safe area padding for iOS PWA home indicator
+                      paddingBottom: Platform.OS === 'web' ? Math.max(insets.bottom, SPACING.sm) : insets.bottom,
+                      height: COMPONENT_HEIGHTS.STANDARD + (Platform.OS === 'web' ? Math.max(insets.bottom, SPACING.sm) : insets.bottom),
+                      // Ensure tab bar is visible and positioned correctly on web mobile browsers
+                      ...(Platform.OS === 'web' && {
+                        position: 'fixed' as any,
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1000,
+                      }),
+                    },
+              }}
+            >
             <Tabs.Screen
               name="index"
               options={{
@@ -112,7 +119,8 @@ export default function TabLayout() {
                 href: null, // Hide from tab bar
               }}
             />
-          </Tabs>
+            </Tabs>
+          </View>
         </SharedDrawer>
       </ContentWithSidebar>
     </>

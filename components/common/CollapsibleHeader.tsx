@@ -68,6 +68,9 @@ export default function CollapsibleHeader({
 
   return (
     <Animated.View
+      // @ts-expect-error - main role is valid for React Native Web but not in TypeScript types
+      accessibilityRole="banner"
+      accessibilityLabel="App header"
       style={[
         styles.container,
         {

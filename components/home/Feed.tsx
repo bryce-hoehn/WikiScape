@@ -213,6 +213,8 @@ export default function Feed({
     return (
       <View
         style={{ flex: 1 }}
+        // @ts-expect-error - main role is valid for React Native Web but not in TypeScript types
+        accessibilityRole="main"
         {...(Platform.OS === 'web' && feedKey === 'for-you' && { id: 'main-content' })}
       >
         <FlashList
@@ -247,6 +249,8 @@ export default function Feed({
   return (
     <View
       style={{ flex: 1 }}
+      // @ts-expect-error - main role is valid for React Native Web but not in TypeScript types
+      accessibilityRole="main"
       {...(Platform.OS === 'web' &&
         feedKey === 'for-you' && {
           id: 'main-content',

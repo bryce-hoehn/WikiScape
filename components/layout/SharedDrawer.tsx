@@ -149,6 +149,9 @@ export default function SharedDrawer({ children }: SharedDrawerProps) {
 
       {/* Drawer sidebar - fixed position (naturally sticky in flex layout) */}
       <View
+        // @ts-expect-error - navigation role is valid for React Native Web but not in TypeScript types
+        accessibilityRole="navigation"
+        accessibilityLabel="Main navigation"
         style={{
           width: 280,
           height: '100%',

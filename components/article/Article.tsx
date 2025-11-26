@@ -398,6 +398,9 @@ export default function Article({
       <ScrollView
         ref={scrollViewRef}
         showsVerticalScrollIndicator={true}
+        // @ts-expect-error - main role is valid for React Native Web but not in TypeScript types
+        accessibilityRole="main"
+        accessibilityLabel={`Article: ${articleTitle || title}`}
         contentContainerStyle={{
           flexGrow: 1,
           paddingBottom: 80,

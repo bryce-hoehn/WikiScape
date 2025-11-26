@@ -33,6 +33,9 @@ export default function ContentWithSidebar({ children, sidebar }: ContentWithSid
 
       {/* Right sidebar - fixed position (naturally sticky in flex layout) */}
       <View
+        // @ts-expect-error - complementary role is valid for React Native Web but not in TypeScript types
+        accessibilityRole="complementary"
+        accessibilityLabel="Sidebar"
         style={{
           width: LAYOUT.SIDEBAR_WIDTH,
           height: '100%',
