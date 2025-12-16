@@ -103,7 +103,7 @@ The app is functional but not been thoroughly tested. Consider it a work in prog
 ## Project Structure
 
 ```
-WikipediaExpo/
+WikiScape/
 ├── app/                    # Expo Router screens
 │   ├── (tabs)/            # Main navigation tabs
 │   ├── article/            # Article detail screens
