@@ -1,4 +1,4 @@
-name: Deploy with GitHub Pages
+name: Deploy with Codeberg Pages
 
 on:
   push:
@@ -19,8 +19,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   build:
@@ -32,41 +30,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'package-lock.json'
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            node-modules-${{ runner.os }}-
-
-      - name: Cache Expo web build
-        id: cache-expo-build
-        uses: actions/cache@v4
-        with:
-          path: |
-            dist/
-            .expo/web/cache
-          key: expo-web-${{ runner.os }}-${{ hashFiles('package-lock.json', 'app.json', 'src/**/*.ts', 'src/**/*.tsx') }}
-          restore-keys: |
-            expo-web-${{ runner.os }}-
-
-      
-      - name: Install Yarn
-        run: npm install -g yarn
-       
+          node-version: '24'
+          
       - name: Setup Expo
-        uses: https://github.com/expo/expo-github-action@v8
+        uses: expo/expo-github-action@v8
         with:
           expo-version: latest
+          packager: npm
 
       - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
        
       - name: Build website
@@ -77,12 +49,17 @@ jobs:
         run: |
           ls -la dist/
           echo "Total files: $(find dist -type f | wc -l)"
-
-      - name: Deploy
+          
+      - name: Configure Git
+        run: |
+          git config user.name "codeberg-actions[bot]"
+          git config user.email "codeberg-actions[bot]@users.noreply.codeberg.org"
+    
+      - name: Deploy to Codeberg Pages
         run: |
           cd dist
           git init
-          git branch -u https://codeberg.org/bhoehn/WikiScape.git/pages
           git add .
           git commit -m "chore: rebuild static page"
-          git push
+          git remote add origin https://codeberg.org/bhoehn/WikiScape.git
+          git push -u origin HEAD:pages --force
