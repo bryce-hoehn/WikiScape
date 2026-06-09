@@ -56,6 +56,10 @@ jobs:
           restore-keys: |
             expo-web-${{ runner.os }}-
 
+      
+      - name: Install Yarn
+        run: npm install -g yarn
+       
       - name: Setup Expo
         uses: https://github.com/expo/expo-github-action@v8
         with:
@@ -64,9 +68,6 @@ jobs:
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
-
-      - name: Install Yarn
-        run: npm install -g yarn
        
       - name: Build website
         run: |
