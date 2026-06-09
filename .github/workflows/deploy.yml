@@ -52,8 +52,8 @@ jobs:
           
       - name: Configure Git
         run: |
-          git config user.name "codeberg-actions[bot]"
-          git config user.email "codeberg-actions[bot]@users.noreply.codeberg.org"
+          git config --global user.name "codeberg-actions[bot]"
+          git config --global user.email "codeberg-actions[bot]@users.noreply.codeberg.org"
     
       - name: Deploy to Codeberg Pages
         run: |
