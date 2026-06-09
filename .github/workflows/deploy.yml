@@ -83,5 +83,6 @@ jobs:
           cd dist
           git init
           git branch -u https://codeberg.org/bhoehn/WikiScape.git/pages
+          git add .
           git commit -m "chore: rebuild static page"
           git push
