@@ -61,5 +61,5 @@ jobs:
           git init
           git add .
           git commit -m "chore: rebuild static page"
-          git remote add origin https://codeberg.org/bhoehn/WikiScape.git
+          git remote add origin ssh://git@codeberg.org/bhoehn/WikiScape.git
           git push -u origin HEAD:pages --force
