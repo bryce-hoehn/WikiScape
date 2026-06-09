@@ -26,7 +26,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+        with:
+          ref: 'master'
+          token:  ${{ secrets.PACKAGE_TOKEN }}
+       
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
