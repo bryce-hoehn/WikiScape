@@ -57,7 +57,7 @@ jobs:
             expo-web-${{ runner.os }}-
 
       - name: Setup Expo
-        uses: expo/expo-github-action@v8
+        uses: github.com/expo/expo-github-action@v8
         with:
           expo-version: latest
 
